@@ -53,13 +53,16 @@ BASE_DIR = Path(__file__).resolve().parent
 if load_dotenv:
     load_dotenv(BASE_DIR / ".env")
 
-DB_PATH = BASE_DIR / "users.db"
-AVATAR_DIR = BASE_DIR / "static" / "uploads" / "avatars"
-MATERIAL_DIR = BASE_DIR / "static" / "uploads" / "materials"
-COURSE_VIDEO_DIR = BASE_DIR / "static" / "uploads" / "courses" / "videos"
-COURSE_FILE_DIR = BASE_DIR / "static" / "uploads" / "courses" / "files"
-SKILL_FILE_DIR = BASE_DIR / "static" / "uploads" / "skills" / "files"
-EXAM_FILE_DIR = BASE_DIR / "static" / "uploads" / "exams" / "rooms"
+DATA_DIR = Path(os.environ.get("LINGO_DATA_DIR", BASE_DIR)).resolve()
+STATIC_UPLOAD_DIR = BASE_DIR / "static" / "uploads"
+UPLOAD_ROOT = Path(os.environ.get("LINGO_UPLOAD_ROOT", STATIC_UPLOAD_DIR)).resolve()
+DB_PATH = Path(os.environ.get("LINGO_DB_PATH", DATA_DIR / "users.db")).resolve()
+AVATAR_DIR = UPLOAD_ROOT / "avatars"
+MATERIAL_DIR = UPLOAD_ROOT / "materials"
+COURSE_VIDEO_DIR = UPLOAD_ROOT / "courses" / "videos"
+COURSE_FILE_DIR = UPLOAD_ROOT / "courses" / "files"
+SKILL_FILE_DIR = UPLOAD_ROOT / "skills" / "files"
+EXAM_FILE_DIR = UPLOAD_ROOT / "exams" / "rooms"
 ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 ALLOWED_VIDEO_EXTENSIONS = {"mp4", "webm", "mov"}
 ALLOWED_MATERIAL_EXTENSIONS = {
@@ -99,6 +102,23 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 app.config["JSON_AS_ASCII"] = False
 app.json.ensure_ascii = False
+
+
+def prepare_runtime_storage():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    UPLOAD_ROOT.mkdir(parents=True, exist_ok=True)
+    if UPLOAD_ROOT == STATIC_UPLOAD_DIR.resolve():
+        return
+    STATIC_UPLOAD_DIR.parent.mkdir(parents=True, exist_ok=True)
+    if STATIC_UPLOAD_DIR.exists() or STATIC_UPLOAD_DIR.is_symlink():
+        return
+    try:
+        STATIC_UPLOAD_DIR.symlink_to(UPLOAD_ROOT, target_is_directory=True)
+    except OSError:
+        STATIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+prepare_runtime_storage()
 
 
 @app.after_request
@@ -1616,6 +1636,11 @@ def close_connection(exception):
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/healthz")
+def healthz():
+    return jsonify({"status": "ok"})
 
 
 @app.route("/img/<path:filename>")
@@ -3595,4 +3620,8 @@ def dashboard():
 if __name__ == "__main__":
     with app.app_context():
         init_db()
-    app.run(debug=True)
+    app.run(
+        host=os.environ.get("HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT", 5000)),
+        debug=os.environ.get("FLASK_DEBUG") == "1",
+    )

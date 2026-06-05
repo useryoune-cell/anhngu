@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: lingo-flask
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python render_start.py && gunicorn app:app --workers 2 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT
+    healthCheckPath: /healthz
+    disk:
+      name: lingo-data
+      mountPath: /opt/render/project/src/.render-data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: PYTHONUTF8
+        value: "1"
+      - key: PYTHONIOENCODING
+        value: utf-8
+      - key: FLASK_ENV
+        value: production
+      - key: LINGO_DATA_DIR
+        value: /opt/render/project/src/.render-data
+      - key: LINGO_UPLOAD_ROOT
+        value: /opt/render/project/src/.render-data/uploads
+      - key: LINGO_SEED_ON_EMPTY
+        value: "true"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GEMINI_API_KEY1
+        sync: false
+      - key: GEMINI_API_KEY2
+        sync: false
+      - key: GEMINI_API_KEY3
+        sync: false
