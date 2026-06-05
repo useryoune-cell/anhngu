@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Lingo - Đồng hành cùng bạn trên hành trình học ngoại ngữ">
+    <title>Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/animations.js') }}" defer></script>
+  </head>
+  <body>
+    <main class="site-shell">
+      <section class="hero section-grid" aria-label="Trang chủ Lingo">
+        <div class="hero-stage">
+          <div class="top-wave"></div>
+
+          <header class="nav">
+            <a class="brand" href="/" aria-label="Lingo">
+              <span>Lingo</span>
+              <img src="{{ url_for('static', filename='img-clean/1.png') }}" alt="">
+            </a>
+            <nav class="nav-links" aria-label="Chức năng">
+              <a href="#idea">Chức năng 1</a>
+              <a href="#roadmap">Chức năng 2</a>
+              <a href="#method">Chức năng 3</a>
+              <a class="is-yellow" href="#tech">Chức năng 4</a>
+            </nav>
+          </header>
+
+          <div class="hero-card">
+            <div class="hero-copy">
+              <h1>Lingo <img src="{{ url_for('static', filename='img-clean/4.png') }}" alt=""></h1>
+              <p>Đồng hành cùng bạn<br>trên hành trình học ngoại ngữ</p>
+              <form class="signup" action="#" method="post">
+                <div class="form-row">
+                  <label>
+                    <input name="name" type="text" placeholder="Họ và tên" aria-label="Họ và tên">
+                  </label>
+                  <label>
+                    <input name="phone" type="tel" placeholder="Số điện thoại" aria-label="Số điện thoại">
+                  </label>
+                </div>
+                <button type="submit">Đăng ký nào!</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="hero-brush"></div>
+          <img class="hero-bunny" src="{{ url_for('static', filename='img-clean/3.png') }}" alt="">
+        </div>
+      </section>
+
+      <section class="idea" id="idea">
+        <div class="section-stage idea-stage">
+          <img class="idea-bunny" src="{{ url_for('static', filename='img-clean/5.png') }}" alt="">
+          <img class="spark-star" src="{{ url_for('static', filename='img-clean/4.png') }}" alt="">
+          <div class="idea-copy">
+            <h2>Ý tưởng cốt lõi</h2>
+            <p>Biến việc học ngoại ngữ thành<br>một cuộc phiêu lưu khám phá<br>thế giới cùng <strong>Lingo</strong></p>
+          </div>
+          <img class="sun" src="{{ url_for('static', filename='img-clean/6.png') }}" alt="">
+        </div>
+      </section>
+
+      <section class="roadmap" id="roadmap">
+        <div class="section-stage roadmap-stage">
+          <img class="map-icon" src="{{ url_for('static', filename='img-clean/7.png') }}" alt="">
+          <h2>Lộ trình học</h2>
+          <div class="roadmap-content">
+            <div class="timeline-area">
+              <img class="timeline" src="{{ url_for('static', filename='img-clean/8.png') }}" alt="">
+              <img class="road-icons" src="{{ url_for('static', filename='img-clean/9.png') }}" alt="">
+            </div>
+            <div class="road-list">
+              <article>
+                <h3>Sprout Village (Mới bắt đầu)</h3>
+                <p>100 từ vựng đầu tiên</p>
+              </article>
+              <article>
+                <h3>Rainbow Town (Cơ bản)</h3>
+                <p>Nghe hiểu câu đơn giản</p>
+              </article>
+              <article>
+                <h3>Explorer City (Trung cấp)</h3>
+                <p>Giao tiếp cơ bản</p>
+              </article>
+              <article>
+                <h3>Global World (Nâng cao)</h3>
+                <p>Sử dụng ngoại ngữ tự tin</p>
+              </article>
+            </div>
+          </div>
+          <img class="study-bunny" src="{{ url_for('static', filename='img-clean/10.png') }}" alt="">
+        </div>
+      </section>
+
+      <section class="method" id="method">
+        <div class="section-stage method-stage">
+          <img class="books-icon" src="{{ url_for('static', filename='img-clean/11.png') }}" alt="">
+          <h2>Phương pháp học</h2>
+          <div class="method-grid">
+            <article>
+              <h3>Learn</h3>
+              <p class="red">Học kiến thức mới</p>
+              <ul>
+                <li>5-10 từ vựng</li>
+                <li>1 mẫu câu</li>
+              </ul>
+            </article>
+            <article>
+              <h3>Play</h3>
+              <p class="red">Mini game</p>
+              <ul>
+                <li>Ghép từ</li>
+                <li>Chọn hình</li>
+                <li>Đua xe trả lời câu hỏi</li>
+              </ul>
+            </article>
+            <article>
+              <h3>Apply</h3>
+              <p class="red">Áp dụng thực tế</p>
+              <ul>
+                <li>Thu âm phát âm</li>
+                <li>Trả lời câu hỏi</li>
+                <li>Hội thoại AI</li>
+              </ul>
+            </article>
+          </div>
+          <img class="reader-bunny" src="{{ url_for('static', filename='img-clean/12.png') }}" alt="">
+        </div>
+      </section>
+
+      <section class="learning-map">
+        <div class="section-stage learning-stage">
+          <img class="brain-icon" src="{{ url_for('static', filename='img-clean/13.png') }}" alt="">
+          <h2>Sơ đồ học</h2>
+          <div class="cycle">
+            <img class="crown-icon" src="{{ url_for('static', filename='img-clean/14.png') }}" alt="">
+            <span class="node node-lesson">Khám phá bài học</span>
+            <span class="node node-word">Học từ mới</span>
+            <span class="node node-speech">Luyện phát âm</span>
+            <span class="node node-game">Mini Game</span>
+            <span class="node node-challenge">Thử thách nhỏ</span>
+            <span class="node node-badge">Nhận huy hiệu</span>
+            <span class="node node-unlock">Mở khóa bài mới</span>
+            <span class="arrow arrow-1">➜</span>
+            <span class="arrow arrow-2">➜</span>
+            <span class="arrow arrow-3">➜</span>
+            <span class="arrow arrow-4">➜</span>
+            <span class="arrow arrow-5">➜</span>
+            <span class="arrow arrow-6">➜</span>
+            <span class="arrow arrow-7">➜</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="tech" id="tech">
+        <div class="section-stage tech-stage">
+          <img class="star-bunny" src="{{ url_for('static', filename='img-clean/16.png') }}" alt="">
+          <div class="tech-content">
+            <div class="tech-title">
+              <h2>Công nghệ nổi bật</h2>
+              <img src="{{ url_for('static', filename='img-clean/15.png') }}" alt="">
+            </div>
+            <div class="tech-pills">
+              <article class="pill pill-left">
+                <img src="{{ url_for('static', filename='img-clean/17.png') }}" alt="">
+                <span>AI Pronunciation Check</span>
+              </article>
+              <article class="pill pill-right">
+                <span>Lingo AI Coach</span>
+                <img src="{{ url_for('static', filename='img-clean/18.png') }}" alt="">
+              </article>
+              <article class="pill pill-left">
+                <img src="{{ url_for('static', filename='img-clean/19.png') }}" alt="">
+                <span>Gamification</span>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="testimonials" id="testimonials">
+        <div class="content-wrap">
+          <div class="section-heading">
+            <img src="{{ url_for('static', filename='img-clean/18.png') }}" alt="">
+            <h2>Học viên nói gì về Lingo?</h2>
+          </div>
+
+          <div class="testimonial-list">
+            <article class="testimonial-card">
+              <div class="student-avatar avatar-pink">MN</div>
+              <div class="testimonial-body">
+                <div class="testimonial-top">
+                  <div>
+                    <h3>Minh Nguyệt</h3>
+                    <div class="level-row">
+                      <span>Sprout Village</span>
+                      <span>Rainbow Town</span>
+                    </div>
+                  </div>
+                  <div class="stars" aria-label="5 sao">★★★★★</div>
+                </div>
+                <p>"Mình cứ nghĩ học ngoại ngữ sẽ chán lắm, nhưng với Lingo thì hoàn toàn ngược lại. Mỗi ngày mình đều hào hứng vào học vì có mini game và nhân vật thỏ dễ thương."</p>
+                <span class="achievement">Đã học 30 ngày</span>
+              </div>
+            </article>
+
+            <article class="testimonial-card">
+              <div class="student-avatar avatar-green">TH</div>
+              <div class="testimonial-body">
+                <div class="testimonial-top">
+                  <div>
+                    <h3>Thanh Hà</h3>
+                    <div class="level-row">
+                      <span>Explorer City</span>
+                    </div>
+                  </div>
+                  <div class="stars" aria-label="5 sao">★★★★★</div>
+                </div>
+                <p>"AI kiểm tra phát âm của Lingo cực kỳ chính xác. Mình đã sửa được nhiều lỗi phát âm mà trước đây không biết. Giờ tự tin giao tiếp hơn hẳn."</p>
+                <span class="achievement green">Cải thiện phát âm</span>
+              </div>
+            </article>
+
+            <article class="testimonial-card">
+              <div class="student-avatar avatar-yellow">QA</div>
+              <div class="testimonial-body">
+                <div class="testimonial-top">
+                  <div>
+                    <h3>Quang Anh</h3>
+                    <div class="level-row">
+                      <span>Global World</span>
+                    </div>
+                  </div>
+                  <div class="stars" aria-label="5 sao">★★★★★</div>
+                </div>
+                <p>"Chỉ 3 tháng học Lingo, mình đã có thể trò chuyện cơ bản với người nước ngoài. Lộ trình học rõ ràng, mỗi bước nhỏ đều cảm thấy tiến bộ thật sự."</p>
+                <span class="achievement orange">Hoàn thành lộ trình</span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" id="faq">
+        <div class="content-wrap">
+          <div class="section-heading faq-heading">
+            <span class="question-mark">?</span>
+            <h2>Câu hỏi thường gặp</h2>
+          </div>
+
+          <div class="faq-list">
+            <details>
+              <summary>Lingo phù hợp với độ tuổi nào?</summary>
+              <p>Lingo phù hợp cho học viên mới bắt đầu, đặc biệt là học sinh và người muốn học ngoại ngữ theo cách nhẹ nhàng, có trò chơi và lộ trình rõ ràng.</p>
+            </details>
+            <details>
+              <summary>Tôi có thể học ngôn ngữ nào trên Lingo?</summary>
+              <p>Phiên bản hiện tại tập trung vào tiếng Anh. Các ngôn ngữ khác có thể được mở rộng theo lộ trình phát triển app.</p>
+            </details>
+            <details>
+              <summary>Mỗi ngày cần học bao lâu để hiệu quả?</summary>
+              <p>Mỗi ngày chỉ cần 15-20 phút học đều đặn. Lingo chia bài học thành các bước nhỏ để bạn không bị quá tải.</p>
+            </details>
+            <details>
+              <summary>Lingo có hoàn tiền nếu không hài lòng không?</summary>
+              <p>Có thể bổ sung chính sách hoàn tiền theo gói học thực tế của bạn. Hiện phần này đang để dạng nội dung mẫu.</p>
+            </details>
+            <details>
+              <summary>AI Pronunciation Check hoạt động như thế nào?</summary>
+              <p>Người học thu âm câu trả lời, hệ thống AI phân tích phát âm và gợi ý lỗi cần sửa để luyện nói tự tin hơn.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div class="footer-wrap">
+          <div class="footer-brand">
+            <a class="footer-logo" href="/">
+              <img src="{{ url_for('static', filename='img-clean/18.png') }}" alt="">
+              <span>Lingo</span>
+            </a>
+            <p>Đồng hành cùng bạn<br>trên hành trình học ngoại ngữ</p>
+            <div class="social-links" aria-label="Mạng xã hội">
+              <a href="#" aria-label="Facebook">f</a>
+              <a href="#" aria-label="Instagram">◎</a>
+              <a href="#" aria-label="TikTok">♪</a>
+              <a href="#" aria-label="YouTube">▶</a>
+            </div>
+          </div>
+
+          <div class="footer-links">
+            <div>
+              <h3>Khám phá</h3>
+              <a href="#roadmap">Lộ trình học</a>
+              <a href="#method">Phương pháp học</a>
+              <a href="#tech">Công nghệ AI</a>
+              <a href="#testimonials">Đánh giá</a>
+            </div>
+            <div>
+              <h3>Hỗ trợ</h3>
+              <a href="#faq">Trung tâm trợ giúp</a>
+              <a href="#faq">Liên hệ chúng tôi</a>
+              <a href="#faq">Cộng đồng Lingo</a>
+              <a href="#faq">Blog học ngoại ngữ</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>© 2025 Lingo. Bảo lưu mọi quyền.</p>
+          <div>
+            <a href="#">Chính sách bảo mật</a>
+            <a href="#">Điều khoản sử dụng</a>
+            <a href="#">Cookie</a>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>
