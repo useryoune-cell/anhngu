@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ course['title'] }} - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <header class="student-topbar">
+        <a class="student-brand" href="{{ url_for('home') }}" aria-label="Lingo">
+          <span>Lingo</span>
+          <img src="{{ url_for('static', filename='img-clean/1.png') }}" alt="">
+        </a>
+        <nav class="student-menu teacher-menu teacher-menu-wide" aria-label="Menu khóa học">
+          <a class="student-menu-link" href="{{ url_for('home') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h5v-6h4v6h5V10"></path></svg></span><span>Home</span></a>
+          <a class="student-menu-link is-active" href="{{ url_for('courses') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg></span><span>Khóa học</span></a>
+          <a class="student-menu-link" href="{{ url_for('materials') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M9 13h6"></path><path d="M9 17h6"></path></svg></span><span>Tài liệu</span></a>
+          <a class="student-menu-link" href="{{ url_for('profile') }}"><span class="student-menu-icon" aria-hidden="true"><img src="{% if user['avatar_path'] %}{{ url_for('static', filename=user['avatar_path']) }}{% else %}{{ url_for('static', filename='img-clean/1.png') }}{% endif %}" alt=""></span><span>Profile</span></a>
+        </nav>
+      </header>
+
+      <section class="student-dashboard">
+        <div class="student-welcome">
+          <div>
+            <p class="student-eyebrow">Bài học</p>
+            <h1>{{ course['title'] }}</h1>
+          </div>
+          <a class="student-logout" href="{{ url_for('courses') }}">Quay lại</a>
+        </div>
+
+        <section class="course-study-layout">
+          <article class="course-study-main">
+            <div class="course-video-frame">
+              {% if course['video_type'] == 'youtube' %}
+                <iframe src="https://www.youtube.com/embed/{{ course['youtube_id'] }}" title="{{ course['title'] }}" allowfullscreen></iframe>
+              {% else %}
+                <video src="{{ url_for('static', filename=course['video_path']) }}" controls></video>
+              {% endif %}
+            </div>
+
+            <div class="course-content-card">
+              <span>Nội dung bài học</span>
+              <p>{{ course['content'] }}</p>
+            </div>
+
+            <div class="course-material-frame">
+              <div>
+                <span>Tài liệu bài học</span>
+                <h2>{{ course['material_name'] or 'Tài liệu liên kết' }}</h2>
+              </div>
+              {% if course['material_type'] == 'file' %}
+                {% set file_url = url_for('static', filename=course['material_path']) %}
+                {% set ext = course['material_path'].rsplit('.', 1)[-1].lower() %}
+                {% if ext in ['png', 'jpg', 'jpeg', 'webp', 'gif'] %}
+                  <img src="{{ file_url }}" alt="{{ course['title'] }}">
+                {% elif ext in ['mp4', 'webm', 'mov'] %}
+                  <video src="{{ file_url }}" controls></video>
+                {% else %}
+                  <iframe src="{{ file_url }}" title="{{ course['title'] }}"></iframe>
+                {% endif %}
+              {% else %}
+                <iframe src="{{ course['material_url'] }}" title="{{ course['title'] }}"></iframe>
+              {% endif %}
+            </div>
+          </article>
+
+          <aside class="quiz-card">
+            <div class="quiz-card-head">
+              <span>Trắc nghiệm ABCD</span>
+              <h2>Hoàn thành bài học</h2>
+              <p>Mỗi bài hoàn thành sẽ cộng 10% vào tiến độ học tập.</p>
+            </div>
+
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <ul class="flash-list">
+                  {% for msg in messages %}
+                    <li>{{ msg }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            {% endwith %}
+
+            <form method="post" action="{{ url_for('course_detail', course_id=course['id']) }}">
+              <h3>{{ course['quiz_question'] }}</h3>
+              {% for key, text in [('A', course['option_a']), ('B', course['option_b']), ('C', course['option_c']), ('D', course['option_d'])] %}
+                <label class="quiz-choice {% if progress and progress['selected_answer'] == key %}is-selected{% endif %}">
+                  <input type="radio" name="answer" value="{{ key }}" {% if progress and progress['selected_answer'] == key %}checked{% endif %} required>
+                  <span>{{ key }}</span>
+                  <strong>{{ text }}</strong>
+                </label>
+              {% endfor %}
+              {% if user['role'] == 'student' %}
+                <button type="submit">{{ 'Nộp lại bài' if progress else 'Nộp bài' }}</button>
+              {% else %}
+                <a href="{{ url_for('course_edit', course_id=course['id']) }}">Chỉnh sửa bài học</a>
+              {% endif %}
+            </form>
+
+            {% if progress %}
+              <div class="quiz-result">
+                <span>Đã hoàn thành</span>
+                <strong>{{ progress['score'] }} điểm</strong>
+                <p>Đáp án đúng: {{ course['correct_answer'] }}</p>
+              </div>
+            {% endif %}
+          </aside>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

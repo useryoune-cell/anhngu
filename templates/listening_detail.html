@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ lesson['title'] }} - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><p class="student-eyebrow">Listening</p><h1>{{ lesson['title'] }}</h1></div><a class="student-logout" href="{{ url_for('listening_lessons') }}">Quay lại</a></div>
+        <section class="course-study-layout">
+          <article class="course-study-main">
+            <div class="listening-audio-card">
+              <span>Audio từ đoạn văn</span>
+              <p data-listening-text>{{ lesson['passage'] }}</p>
+              <div class="next-action-buttons">
+                <button type="button" data-play-listening>Phát audio</button>
+                <button class="is-secondary" type="button" data-stop-listening>Dừng</button>
+              </div>
+            </div>
+          </article>
+          <aside class="quiz-card">
+            <div class="quiz-card-head"><span>Trắc nghiệm ABCD</span><h2>Kiểm tra nghe</h2><p>Nghe audio rồi chọn đáp án đúng.</p></div>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}<ul class="flash-list">{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}
+            {% endwith %}
+            <form method="post" action="{{ url_for('listening_detail', lesson_id=lesson['id']) }}">
+              <h3>{{ lesson['quiz_question'] }}</h3>
+              {% for key, text in [('A', lesson['option_a']), ('B', lesson['option_b']), ('C', lesson['option_c']), ('D', lesson['option_d'])] %}
+                <label class="quiz-choice {% if attempt and attempt['selected_answer'] == key %}is-selected{% endif %}">
+                  <input type="radio" name="answer" value="{{ key }}" {% if attempt and attempt['selected_answer'] == key %}checked{% endif %} required>
+                  <span>{{ key }}</span><strong>{{ text }}</strong>
+                </label>
+              {% endfor %}
+              {% if user['role'] == 'student' %}<button type="submit">{{ 'Nộp lại' if attempt else 'Nộp bài' }}</button>{% endif %}
+            </form>
+            {% if attempt %}<div class="quiz-result"><span>Đã hoàn thành</span><strong>{{ attempt['score'] }} điểm</strong><p>Đáp án đúng: {{ lesson['correct_answer'] }}</p></div>{% endif %}
+          </aside>
+        </section>
+      </section>
+    </main>
+    <script>
+      (() => {
+        const text = document.querySelector("[data-listening-text]")?.textContent || "";
+        document.querySelector("[data-play-listening]")?.addEventListener("click", () => {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = "en-US";
+          utterance.rate = 0.92;
+          window.speechSynthesis.speak(utterance);
+        });
+        document.querySelector("[data-stop-listening]")?.addEventListener("click", () => window.speechSynthesis.cancel());
+      })();
+    </script>
+  </body>
+</html>

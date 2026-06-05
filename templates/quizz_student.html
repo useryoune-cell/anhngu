@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quizz - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <header class="student-topbar">
+        <a class="student-brand" href="{{ url_for('home') }}" aria-label="Lingo"><span>Lingo</span><img src="{{ url_for('static', filename='img-clean/1.png') }}" alt=""></a>
+        <nav class="student-menu" aria-label="Menu học sinh">
+          <a class="student-menu-link" href="{{ url_for('home') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h5v-6h4v6h5V10"></path></svg></span><span>Home</span></a>
+          <div class="student-menu-link has-submenu" tabindex="0"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h8a2 2 0 0 0 2-2V6"></path><path d="M5 14h7a2 2 0 0 0 2-2V4"></path><path d="M5 14v4"></path><path d="M9 18v2"></path></svg></span><span>Ôn luyện</span><div class="student-submenu"><a href="{{ url_for('skills') }}">Kĩ năng</a></div></div>
+          <div class="student-menu-link has-submenu" tabindex="0"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="2"></rect><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h3"></path></svg></span><span>Thi</span><div class="student-submenu"><a href="{{ url_for('exam_speaking_ai') }}">Speaking AI Test</a><a href="{{ url_for('exam_rooms') }}">Phòng thi</a></div></div>
+          <a class="student-menu-link" href="{{ url_for('courses') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg></span><span>Khóa học</span></a>
+          <div class="student-menu-link has-submenu is-active" tabindex="0"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v6"></path><path d="M12 16v6"></path><path d="M2 12h6"></path><path d="M16 12h6"></path><path d="m4.9 4.9 4.2 4.2"></path><path d="m14.9 14.9 4.2 4.2"></path><path d="m19.1 4.9-4.2 4.2"></path><path d="m9.1 14.9-4.2 4.2"></path></svg></span><span>Game</span><div class="student-submenu"><a href="{{ url_for('quizz') }}">Quizz</a></div></div>
+          <a class="student-menu-link" href="{{ url_for('materials') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M9 13h6"></path><path d="M9 17h6"></path></svg></span><span>Tài liệu</span></a>
+          <a class="student-menu-link" href="{{ url_for('profile') }}"><span class="student-menu-icon" aria-hidden="true"><img src="{% if user['avatar_path'] %}{{ url_for('static', filename=user['avatar_path']) }}{% else %}{{ url_for('static', filename='img-clean/1.png') }}{% endif %}" alt=""></span><span>Profile</span></a>
+        </nav>
+      </header>
+
+      <section class="student-dashboard">
+        <div class="student-welcome">
+          <div><h1>Quizz</h1></div>
+          <a class="student-logout" href="{{ url_for('logout') }}">Đăng xuất</a>
+        </div>
+
+        <section class="materials-hero-card quiz-hero-card">
+          <div>
+            <span>Mỗi câu 10 giây</span>
+            <h2>Chọn gói 10 câu, đúng trên 80% để cộng 10 điểm bảng xếp hạng</h2>
+          </div>
+          <img src="{{ url_for('static', filename='img-clean/12.png') }}" alt="">
+        </section>
+
+        <div class="material-grid material-grid-wide">
+          {% for package in packages %}
+            <article class="material-box quiz-package-box">
+              <div class="material-type">{{ package['difficulty'] }}</div>
+              <h3>{{ package['title'] }}</h3>
+              <p>{{ package['question_count'] }} câu hỏi · hệ thống random thứ tự câu khi bắt đầu chơi.</p>
+              <div class="material-meta">
+                <span>Điểm tốt nhất: {{ package.best_percentage if package.best_percentage is not none else 'Chưa chơi' }}{% if package.best_percentage is not none %}%{% endif %}</span>
+                <span>Điểm thưởng: +{{ package.total_bonus }}</span>
+              </div>
+              <div class="material-actions">
+                <a href="{{ url_for('quizz_play', package_id=package['id']) }}">Chơi ngay</a>
+              </div>
+            </article>
+          {% else %}
+            <article class="material-empty">
+              <h3>Chưa có gói quiz</h3>
+              <p>Khi giáo viên tạo gói câu hỏi, học sinh sẽ thấy từng gói tại đây.</p>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

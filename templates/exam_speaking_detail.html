@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ topic['title'] }} - Speaking AI Test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><p class="student-eyebrow">Speaking AI Test</p><h1>{{ topic['title'] }}</h1></div><a class="student-logout" href="{{ url_for('exam_speaking_ai') }}">Quay lai</a></div>
+        <section class="exam-ai-room">
+          <article class="exam-ai-main">
+            <div class="exam-ai-topic">
+              <span>{{ topic['level'] }}</span>
+              <h2>{{ topic['title'] }}</h2>
+              <p>{{ topic['topic_prompt'] }}</p>
+            </div>
+            <div class="exam-ai-chat" id="chatBox"></div>
+            <div class="exam-ai-live">
+              <span>Cau tra loi cua ban</span>
+              <textarea id="studentAnswer" rows="5" placeholder="Transcript se hien tai day..."></textarea>
+            </div>
+            <div class="speaking-controls exam-ai-controls">
+              <button type="button" id="startTest">Bat dau</button>
+              <button type="button" class="is-secondary" id="recordAnswer" disabled>Ghi am</button>
+              <button type="button" class="is-secondary" id="stopRecord" disabled>Dung ghi</button>
+              <button type="button" id="sendAnswer" disabled>Gui tra loi</button>
+            </div>
+          </article>
+
+          <aside class="exam-ai-side">
+            <img src="{{ url_for('static', filename='img-clean/11.png') }}" alt="">
+            <div class="exam-ai-result" id="resultPanel">
+              <span>Ket qua</span>
+              <strong id="finalScore">--/100</strong>
+              <p id="finalFeedback">Chua co ket qua.</p>
+              <small id="pronunciationFeedback"></small>
+            </div>
+            <div class="word-feedback-list" id="unclearWords"></div>
+          </aside>
+        </section>
+
+        <section class="writing-submission-panel exam-history-panel">
+          <div class="material-list-head"><div><span>Lich su gan day</span><h2>{{ recent_sessions|length }} luot</h2></div></div>
+          <div class="writing-submission-list">
+            {% for item in recent_sessions %}
+              <article class="exam-session-card"><span>{{ item['completed_at'] }}</span><h3>{{ item['score'] }}/100</h3><p>{{ item['feedback'] }}</p></article>
+            {% else %}
+              <article class="material-empty"><h3>Chua co lich su</h3><p>Hoan thanh mot luot Speaking AI Test de xem diem tai day.</p></article>
+            {% endfor %}
+          </div>
+        </section>
+      </section>
+    </main>
+    <script>
+      const turnUrl = "{{ url_for('exam_speaking_turn', topic_id=topic['id']) }}";
+      const finishUrl = "{{ url_for('exam_speaking_finish', topic_id=topic['id']) }}";
+      const chatBox = document.getElementById('chatBox');
+      const answerBox = document.getElementById('studentAnswer');
+      const startBtn = document.getElementById('startTest');
+      const recordBtn = document.getElementById('recordAnswer');
+      const stopBtn = document.getElementById('stopRecord');
+      const sendBtn = document.getElementById('sendAnswer');
+      const scoreEl = document.getElementById('finalScore');
+      const feedbackEl = document.getElementById('finalFeedback');
+      const pronunciationEl = document.getElementById('pronunciationFeedback');
+      const unclearEl = document.getElementById('unclearWords');
+      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      let recognition;
+      let conversation = [];
+      let currentAiText = '';
+      const maxTurns = 5;
+
+      function addBubble(role, text) {
+        const item = document.createElement('div');
+        item.className = `exam-ai-bubble is-${role}`;
+        const label = document.createElement('span');
+        label.textContent = role === 'ai' ? 'AI' : 'Hoc sinh';
+        const body = document.createElement('p');
+        body.textContent = text;
+        item.append(label, body);
+        chatBox.appendChild(item);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function speak(text) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.92;
+        window.speechSynthesis.speak(utterance);
+      }
+
+      async function postJson(url, payload) {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error('request_failed');
+        return response.json();
+      }
+
+      async function getNextAi() {
+        startBtn.disabled = true;
+        sendBtn.disabled = true;
+        const data = await postJson(turnUrl, {
+          conversation,
+          turn_index: conversation.length
+        });
+        currentAiText = data.ai_text || 'Can you tell me more?';
+        addBubble('ai', currentAiText);
+        speak(currentAiText);
+        recordBtn.disabled = !Recognition;
+      }
+
+      async function finishTest() {
+        recordBtn.disabled = true;
+        stopBtn.disabled = true;
+        sendBtn.disabled = true;
+        const data = await postJson(finishUrl, {conversation});
+        scoreEl.textContent = `${data.score}/100`;
+        feedbackEl.textContent = data.feedback || '';
+        pronunciationEl.textContent = data.pronunciation_feedback || '';
+        const words = data.unclear_words || [];
+        unclearEl.innerHTML = '';
+        if (!words.length) {
+          const empty = document.createElement('article');
+          empty.innerHTML = '<b>Tot</b><small>Chua co tu can sua duoc AI tra ve.</small>';
+          unclearEl.appendChild(empty);
+          return;
+        }
+        words.forEach((item) => {
+          const card = document.createElement('article');
+          const word = document.createElement('b');
+          const note = document.createElement('small');
+          word.textContent = item.word || 'word';
+          note.textContent = `${item.issue_vi || ''} ${item.suggestion_vi || ''}`.trim();
+          card.append(word, note);
+          unclearEl.appendChild(card);
+        });
+      }
+
+      startBtn.addEventListener('click', async () => {
+        conversation = [];
+        chatBox.innerHTML = '';
+        answerBox.value = '';
+        scoreEl.textContent = '--/100';
+        feedbackEl.textContent = 'Dang thi...';
+        pronunciationEl.textContent = '';
+        unclearEl.innerHTML = '';
+        await getNextAi();
+      });
+
+      if (Recognition) {
+        recognition = new Recognition();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = (event) => {
+          answerBox.value = [...event.results].map((result) => result[0].transcript).join(' ');
+          sendBtn.disabled = !answerBox.value.trim();
+        };
+        recognition.onend = () => {
+          stopBtn.disabled = true;
+          recordBtn.disabled = false;
+          sendBtn.disabled = !answerBox.value.trim();
+        };
+        recordBtn.addEventListener('click', () => {
+          answerBox.value = '';
+          recordBtn.disabled = true;
+          stopBtn.disabled = false;
+          sendBtn.disabled = true;
+          recognition.start();
+        });
+        stopBtn.addEventListener('click', () => recognition.stop());
+      } else {
+        recordBtn.disabled = true;
+        answerBox.placeholder = 'Trinh duyet nay chua ho tro Speech Recognition. Ban co the go cau tra loi tai day.';
+      }
+
+      answerBox.addEventListener('input', () => {
+        sendBtn.disabled = !currentAiText || !answerBox.value.trim();
+      });
+
+      sendBtn.addEventListener('click', async () => {
+        const answer = answerBox.value.trim();
+        if (!answer || !currentAiText) return;
+        addBubble('student', answer);
+        conversation.push({ai: currentAiText, student: answer});
+        answerBox.value = '';
+        if (conversation.length >= maxTurns) {
+          await finishTest();
+        } else {
+          await getNextAi();
+        }
+      });
+    </script>
+  </body>
+</html>

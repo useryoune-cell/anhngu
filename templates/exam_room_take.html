@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ room['title'] }} - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><p class="student-eyebrow">Phong thi</p><h1>{{ room['title'] }}</h1></div><a class="student-logout" href="{{ url_for('exam_rooms') }}">Quay lai</a></div>
+        {% with messages = get_flashed_messages() %}{% if messages %}<ul class="flash-list">{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}{% endwith %}
+        {% if submission %}
+          <section class="quiz-result-page exam-finished-card"><img src="{{ url_for('static', filename='img-clean/16.png') }}" alt=""><span>Da nop bai</span><h2>{{ submission['score'] }}/10</h2><p>Dung {{ submission['correct_count'] }}/{{ submission['total_questions'] }} cau.</p></section>
+        {% elif status != 'open' %}
+          <section class="materials-hero-card skill-page-hero"><div><span>{{ status }}</span><h2>{{ 'Phong thi chua mo' if status == 'waiting' else 'Phong thi da dong' }}</h2><p>Gio mo phong: {{ room['start_at'] }} - Thoi gian lam bai: {{ room['duration_minutes'] }} phut.</p></div><img src="{{ url_for('static', filename='img-clean/12.png') }}" alt=""></section>
+        {% else %}
+          <form class="exam-taking-form" id="examForm" method="post" action="{{ url_for('exam_room_submit', room_id=room['id']) }}">
+            <aside class="exam-taking-top"><span>Thoi gian con lai</span><strong id="examTimer">--:--</strong><small>{{ questions|length }} cau - thang diem 10</small></aside>
+            <div class="exam-question-list">
+              {% for question in questions %}
+                <fieldset class="exam-question-card">
+                  <legend>Cau {{ loop.index }} - {{ question['question_type'] }}</legend>
+                  {% if question['passage'] %}<p class="exam-passage">{{ question['passage'] }}</p>{% endif %}
+                  <h3>{{ question['question_text'] }}</h3>
+                  {% for key, text in [('A', question['option_a']), ('B', question['option_b']), ('C', question['option_c']), ('D', question['option_d'])] %}
+                    <label class="quiz-choice"><input type="radio" name="answer_{{ question['id'] }}" value="{{ key }}" required><span>{{ key }}</span><strong>{{ text }}</strong></label>
+                  {% endfor %}
+                </fieldset>
+              {% endfor %}
+            </div>
+            <div class="exam-save-bar"><button type="submit">Nop bai</button></div>
+          </form>
+        {% endif %}
+      </section>
+    </main>
+    <script>
+      const form = document.getElementById('examForm');
+      const timerEl = document.getElementById('examTimer');
+      if (form && timerEl) {
+        const startAt = new Date("{{ room['start_at'] }}").getTime();
+        const endAt = startAt + Number("{{ room['duration_minutes'] }}") * 60 * 1000;
+        const tick = () => {
+          const remain = Math.max(0, Math.floor((endAt - Date.now()) / 1000));
+          const minutes = Math.floor(remain / 60).toString().padStart(2, '0');
+          const seconds = (remain % 60).toString().padStart(2, '0');
+          timerEl.textContent = `${minutes}:${seconds}`;
+          if (remain <= 0) form.submit();
+        };
+        tick();
+        setInterval(tick, 1000);
+      }
+    </script>
+  </body>
+</html>

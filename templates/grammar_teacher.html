@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý ngữ pháp - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <header class="student-topbar">
+        <a class="student-brand" href="{{ url_for('home') }}" aria-label="Lingo"><span>Lingo</span><img src="{{ url_for('static', filename='img-clean/1.png') }}" alt=""></a>
+        <nav class="student-menu teacher-menu teacher-menu-wide" aria-label="Menu giáo viên">
+          <a class="student-menu-link" href="{{ url_for('home') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h5v-6h4v6h5V10"></path></svg></span><span>Home</span></a>
+          <a class="student-menu-link is-active" href="{{ url_for('skills') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h8a2 2 0 0 0 2-2V6"></path><path d="M5 14h7a2 2 0 0 0 2-2V4"></path><path d="M5 14v4"></path><path d="M9 18v2"></path></svg></span><span>Kĩ năng</span></a>
+          <a class="student-menu-link" href="{{ url_for('courses') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg></span><span>Khóa học</span></a>
+          <a class="student-menu-link" href="{{ url_for('quizz') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v6"></path><path d="M12 16v6"></path><path d="M2 12h6"></path><path d="M16 12h6"></path></svg></span><span>Quizz</span></a>
+          <a class="student-menu-link" href="{{ url_for('materials') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M9 13h6"></path></svg></span><span>Tài liệu</span></a>
+        </nav>
+      </header>
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><p class="student-eyebrow">Kĩ năng ngữ pháp</p><h1>Ngữ pháp</h1></div><a class="student-logout" href="{{ url_for('skills') }}">Quay lại</a></div>
+        <section class="materials-teacher-layout skill-admin-layout">
+          <form class="material-form-card" method="post" action="{% if edit_lesson %}{{ url_for('grammar_edit', lesson_id=edit_lesson['id']) }}{% else %}{{ url_for('grammar_lessons') }}{% endif %}" enctype="multipart/form-data">
+            <div class="material-form-head"><span>{{ 'Chỉnh sửa' if edit_lesson else 'Tạo mới' }}</span><h2>Bài ngữ pháp</h2></div>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}<ul class="flash-list">{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}
+            {% endwith %}
+            <label><span>Tiêu đề bài học</span><input name="title" type="text" value="{{ edit_lesson['title'] if edit_lesson else '' }}" required></label>
+            <label><span>Nội dung bài học</span><textarea name="content" rows="7" required>{{ edit_lesson['content'] if edit_lesson else '' }}</textarea></label>
+            <div class="course-form-split">
+              <label><span>Loại tài liệu</span><select name="material_type"><option value="file" {% if edit_lesson and edit_lesson['material_type'] == 'file' %}selected{% endif %}>Upload file</option><option value="link" {% if edit_lesson and edit_lesson['material_type'] == 'link' %}selected{% endif %}>Link Google Drive</option></select></label>
+              <label><span>Link tài liệu</span><input name="material_url" type="url" value="{{ edit_lesson['material_url'] if edit_lesson else '' }}" placeholder="https://drive.google.com/..."></label>
+            </div>
+            <label><span>Upload tài liệu</span><input name="material_file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.mp4,.webm,.mov,.mp3,.wav,.doc,.docx,.ppt,.pptx">{% if edit_lesson and edit_lesson['material_name'] %}<small>File hiện tại: {{ edit_lesson['material_name'] }}</small>{% endif %}</label>
+            <div class="quiz-editor">
+              <h3>Trắc nghiệm ABCD</h3>
+              <label><span>Câu hỏi</span><textarea name="quiz_question" rows="3" required>{{ edit_lesson['quiz_question'] if edit_lesson else '' }}</textarea></label>
+              {% for key, field in [('A','option_a'),('B','option_b'),('C','option_c'),('D','option_d')] %}
+                <label class="quiz-option-edit"><input name="correct_answer" type="radio" value="{{ key }}" {% if edit_lesson and edit_lesson['correct_answer'] == key %}checked{% endif %} required><span>{{ key }}</span><input name="{{ field }}" type="text" value="{{ edit_lesson[field] if edit_lesson else '' }}" required></label>
+              {% endfor %}
+            </div>
+            <div class="material-form-actions"><button type="submit">{{ 'Lưu thay đổi' if edit_lesson else 'Lưu bài ngữ pháp' }}</button>{% if edit_lesson %}<a href="{{ url_for('grammar_lessons') }}">Hủy sửa</a>{% endif %}</div>
+          </form>
+          <div class="material-list-panel">
+            <div class="material-list-head"><div><span>Danh sách bài ngữ pháp</span><h2>{{ lessons|length }} bài</h2></div><img src="{{ url_for('static', filename='img-clean/18.png') }}" alt=""></div>
+            <div class="material-grid">
+              {% for lesson in lessons %}
+                <article class="material-box skill-lesson-box">
+                  <div class="material-type">Grammar</div><h3>{{ lesson['title'] }}</h3><p>{{ lesson['content'] }}</p>
+                  <div class="material-meta"><span>{{ lesson['teacher_name'] }}</span><span>{{ lesson['updated_at'] }}</span></div>
+                  <div class="material-actions"><a href="{{ url_for('grammar_detail', lesson_id=lesson['id']) }}">Mở</a><a class="is-secondary" href="{{ url_for('grammar_edit', lesson_id=lesson['id']) }}">Sửa</a><form method="post" action="{{ url_for('grammar_delete', lesson_id=lesson['id']) }}"><button type="submit">Xóa</button></form></div>
+                </article>
+              {% else %}
+                <article class="material-empty"><h3>Chưa có bài ngữ pháp</h3><p>Giáo viên tạo bài đầu tiên ở form bên trái.</p></article>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

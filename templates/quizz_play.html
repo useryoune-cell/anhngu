@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chơi Quizz - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <section class="student-dashboard quiz-play-dashboard">
+        <div class="student-welcome">
+          <div>
+            <p class="student-eyebrow">{{ package['difficulty'] }}</p>
+            <h1>{{ package['title'] }}</h1>
+          </div>
+          <a class="student-logout" href="{{ url_for('quizz') }}">Quay lại</a>
+        </div>
+
+        <form class="quiz-play-card" method="post" action="{{ url_for('quizz_play', package_id=package['id']) }}" data-quiz-play>
+          <input type="hidden" name="question_ids" value="{% for question in questions %}{{ question['id'] }}{% if not loop.last %},{% endif %}{% endfor %}">
+          <div class="quiz-play-top">
+            <div>
+              <span>Câu <b data-current-question>1</b>/10</span>
+              <h2>Quizz đang chạy</h2>
+            </div>
+            <div class="quiz-timer">
+              <span data-timer>10</span>
+              <small>giây</small>
+            </div>
+          </div>
+
+          {% for question in questions %}
+            <fieldset class="quiz-play-question {% if loop.first %}is-active{% endif %}" data-question-step>
+              <legend>{{ question['question_text'] }}</legend>
+              {% for key, text in [('A', question['option_a']), ('B', question['option_b']), ('C', question['option_c']), ('D', question['option_d'])] %}
+                <label class="quiz-choice">
+                  <input type="radio" name="answer_{{ question['id'] }}" value="{{ key }}">
+                  <span>{{ key }}</span>
+                  <strong>{{ text }}</strong>
+                </label>
+              {% endfor %}
+            </fieldset>
+          {% endfor %}
+
+          <div class="quiz-play-actions">
+            <button type="button" data-next-question>Câu tiếp theo</button>
+            <button type="submit" data-submit-quiz hidden>Nộp kết quả</button>
+          </div>
+        </form>
+      </section>
+    </main>
+    <script>
+      (() => {
+        const form = document.querySelector("[data-quiz-play]");
+        if (!form) return;
+
+        const steps = [...form.querySelectorAll("[data-question-step]")];
+        const currentLabel = form.querySelector("[data-current-question]");
+        const timerLabel = form.querySelector("[data-timer]");
+        const nextButton = form.querySelector("[data-next-question]");
+        const submitButton = form.querySelector("[data-submit-quiz]");
+        let current = 0;
+        let seconds = 10;
+        let intervalId;
+
+        const showStep = (index) => {
+          steps.forEach((step, stepIndex) => step.classList.toggle("is-active", stepIndex === index));
+          currentLabel.textContent = String(index + 1);
+          seconds = 10;
+          timerLabel.textContent = String(seconds);
+          nextButton.hidden = index === steps.length - 1;
+          submitButton.hidden = index !== steps.length - 1;
+          window.clearInterval(intervalId);
+          intervalId = window.setInterval(() => {
+            seconds -= 1;
+            timerLabel.textContent = String(Math.max(seconds, 0));
+            if (seconds <= 0) advance();
+          }, 1000);
+        };
+
+        const advance = () => {
+          if (current < steps.length - 1) {
+            current += 1;
+            showStep(current);
+          } else {
+            window.clearInterval(intervalId);
+            form.requestSubmit();
+          }
+        };
+
+        nextButton.addEventListener("click", advance);
+        form.addEventListener("submit", () => window.clearInterval(intervalId));
+        showStep(0);
+      })();
+    </script>
+  </body>
+</html>

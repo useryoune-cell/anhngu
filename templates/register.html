@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đăng ký - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="site-shell auth-page">
+      <section class="auth-scene auth-scene-register" aria-label="Đăng ký học sinh Lingo">
+        <div class="auth-card auth-card-wide">
+          <a class="auth-logo" href="{{ url_for('index') }}" aria-label="Lingo">
+            <span class="auth-logo-mark">
+              <img src="{{ url_for('static', filename='img-clean/1.png') }}" alt="">
+            </span>
+            <span class="auth-brand">Lingo <img src="{{ url_for('static', filename='img-clean/4.png') }}" alt=""></span>
+          </a>
+          <p>Tạo tài khoản để bắt đầu học cùng Lingo!</p>
+
+          {% with messages = get_flashed_messages() %}
+            {% if messages %}
+              <ul class="flash-list">
+                {% for msg in messages %}
+                  <li>{{ msg }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          {% endwith %}
+
+          <form method="post" action="{{ url_for('register') }}" class="auth-form">
+            <label class="auth-field">
+              <span class="auth-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <circle cx="12" cy="8" r="4"></circle>
+                  <path d="M5 20a7 7 0 0 1 14 0"></path>
+                </svg>
+              </span>
+              <input name="fullname" type="text" placeholder="Họ và tên" required>
+            </label>
+            <label class="auth-field">
+              <span class="auth-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <circle cx="12" cy="12" r="4"></circle>
+                  <path d="M16 8v5a3 3 0 0 0 6 0 10 10 0 1 0-4 8"></path>
+                </svg>
+              </span>
+              <input name="username" type="text" placeholder="Tên đăng nhập (tùy chọn)">
+            </label>
+            <label class="auth-field">
+              <span class="auth-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M4 6h16v12H4z"></path>
+                  <path d="m4 7 8 6 8-6"></path>
+                </svg>
+              </span>
+              <input name="email" type="email" placeholder="Email" required>
+            </label>
+            <label class="auth-field">
+              <span class="auth-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                </svg>
+              </span>
+              <input name="password" type="password" placeholder="Mật khẩu" required>
+            </label>
+            <label class="auth-field">
+              <span class="auth-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M4 20V6a2 2 0 0 1 2-2h12v16"></path>
+                  <path d="M8 8h6"></path>
+                  <path d="M8 12h6"></path>
+                </svg>
+              </span>
+              <input name="class" type="text" placeholder="Lớp (ví dụ: 10A1)">
+            </label>
+            <button class="auth-submit" type="submit">Đăng ký</button>
+          </form>
+
+          <div class="auth-switch">
+            Đã có tài khoản? <a href="{{ url_for('login') }}">Đăng nhập</a>
+          </div>
+        </div>
+
+        <img class="auth-bunny auth-bunny-register" src="{{ url_for('static', filename='img-clean/10.png') }}" alt="">
+      </section>
+    </main>
+  </body>
+</html>

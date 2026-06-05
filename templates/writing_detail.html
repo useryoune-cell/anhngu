@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ task['title'] }} - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><p class="student-eyebrow">Writing</p><h1>{{ task['title'] }}</h1></div><a class="student-logout" href="{{ url_for('writing_tasks') }}">Quay lai</a></div>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}<ul class="flash-list">{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}
+        {% endwith %}
+        <section class="writing-workspace">
+          <article class="writing-prompt-card">
+            <span>De bai</span>
+            <h2>{{ task['title'] }}</h2>
+            <p>{{ task['prompt'] }}</p>
+            <div class="writing-timer" data-minutes="{{ task['time_limit_minutes'] }}"><strong id="writingTimer">{{ task['time_limit_minutes'] }}:00</strong><small>thoi gian con lai</small></div>
+            <img src="{{ url_for('static', filename='img-clean/15.png') }}" alt="">
+          </article>
+          <form class="writing-editor-card" method="post" action="{{ url_for('writing_detail', task_id=task['id']) }}">
+            <label><span>Bai viet cua ban</span><textarea class="writing-textarea" name="content" rows="18" required>{{ submission['content'] if submission else '' }}</textarea></label>
+            <button type="submit">Nop bai viet</button>
+          </form>
+          {% if submission %}
+            <aside class="writing-feedback-card">
+              <span>Ket qua</span>
+              <div class="writing-score-row"><strong>AI: {{ submission['ai_score'] }}/100</strong><strong>Giao vien: {{ submission['teacher_score'] if submission['teacher_score'] is not none else 'Dang cham' }}</strong></div>
+              <h3>Nhan xet AI</h3>
+              <p>{{ submission['ai_feedback'] }}</p>
+              <h3>Nhan xet giao vien</h3>
+              <p>{{ submission['teacher_feedback'] or 'Giao vien chua cham bai nay.' }}</p>
+            </aside>
+          {% endif %}
+        </section>
+      </section>
+    </main>
+    <script>
+      const timerEl = document.getElementById('writingTimer');
+      const timerBox = document.querySelector('.writing-timer');
+      if (timerEl && timerBox) {
+        let seconds = Number(timerBox.dataset.minutes || 30) * 60;
+        setInterval(() => {
+          seconds = Math.max(0, seconds - 1);
+          const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+          const rest = (seconds % 60).toString().padStart(2, '0');
+          timerEl.textContent = `${minutes}:${rest}`;
+        }, 1000);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ lesson['title'] }} - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><p class="student-eyebrow">Grammar</p><h1>{{ lesson['title'] }}</h1></div><a class="student-logout" href="{{ url_for('grammar_lessons') }}">Quay lại</a></div>
+        <section class="course-study-layout">
+          <article class="course-study-main">
+            <div class="course-content-card"><span>Nội dung bài học</span><p>{{ lesson['content'] }}</p></div>
+            <div class="course-material-frame">
+              <div><span>Tài liệu ngữ pháp</span><h2>{{ lesson['material_name'] or 'Tài liệu liên kết' }}</h2></div>
+              {% if lesson['material_type'] == 'file' %}
+                {% set file_url = url_for('static', filename=lesson['material_path']) %}
+                {% set ext = lesson['material_path'].rsplit('.', 1)[-1].lower() %}
+                {% if ext in ['png', 'jpg', 'jpeg', 'webp', 'gif'] %}
+                  <img src="{{ file_url }}" alt="{{ lesson['title'] }}">
+                {% elif ext in ['mp4', 'webm', 'mov'] %}
+                  <video src="{{ file_url }}" controls></video>
+                {% else %}
+                  <iframe src="{{ file_url }}" title="{{ lesson['title'] }}"></iframe>
+                {% endif %}
+              {% else %}
+                <iframe src="{{ lesson['material_url'] }}" title="{{ lesson['title'] }}"></iframe>
+              {% endif %}
+            </div>
+          </article>
+          <aside class="quiz-card">
+            <div class="quiz-card-head"><span>Trắc nghiệm ABCD</span><h2>Kiểm tra ngữ pháp</h2><p>Đọc bài học và chọn đáp án đúng.</p></div>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}<ul class="flash-list">{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}
+            {% endwith %}
+            <form method="post" action="{{ url_for('grammar_detail', lesson_id=lesson['id']) }}">
+              <h3>{{ lesson['quiz_question'] }}</h3>
+              {% for key, text in [('A', lesson['option_a']), ('B', lesson['option_b']), ('C', lesson['option_c']), ('D', lesson['option_d'])] %}
+                <label class="quiz-choice {% if attempt and attempt['selected_answer'] == key %}is-selected{% endif %}">
+                  <input type="radio" name="answer" value="{{ key }}" {% if attempt and attempt['selected_answer'] == key %}checked{% endif %} required>
+                  <span>{{ key }}</span><strong>{{ text }}</strong>
+                </label>
+              {% endfor %}
+              {% if user['role'] == 'student' %}<button type="submit">{{ 'Nộp lại' if attempt else 'Nộp bài' }}</button>{% endif %}
+            </form>
+            {% if attempt %}<div class="quiz-result"><span>Đã hoàn thành</span><strong>{{ attempt['score'] }} điểm</strong><p>Đáp án đúng: {{ lesson['correct_answer'] }}</p></div>{% endif %}
+          </aside>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

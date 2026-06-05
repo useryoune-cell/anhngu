@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Kết quả Quizz - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <section class="student-dashboard">
+        <div class="student-welcome">
+          <div>
+            <p class="student-eyebrow">{{ package['title'] }}</p>
+            <h1>Kết quả</h1>
+          </div>
+          <a class="student-logout" href="{{ url_for('quizz') }}">Quay lại</a>
+        </div>
+
+        <section class="quiz-result-page">
+          <img src="{{ url_for('static', filename='img-clean/18.png') }}" alt="">
+          <div>
+            <span>{{ correct_count }}/{{ total_questions }} câu đúng</span>
+            <h2>{{ percentage }}%</h2>
+            <p>{% if bonus_points %}Bạn được cộng 10 điểm vào bảng xếp hạng.{% else %}Bạn cần đúng trên 80% để được cộng điểm bảng xếp hạng.{% endif %}</p>
+            <div class="next-action-buttons">
+              <a href="{{ url_for('quizz_play', package_id=package['id']) }}">Chơi lại</a>
+              <a class="is-secondary" href="{{ url_for('home') }}">Xem bảng xếp hạng</a>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

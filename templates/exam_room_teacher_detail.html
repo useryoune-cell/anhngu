@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ room['title'] }} - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><p class="student-eyebrow">Ket qua phong thi</p><h1>{{ room['title'] }}</h1></div><a class="student-logout" href="{{ url_for('exam_rooms') }}">Quay lai</a></div>
+        <section class="writing-submission-panel">
+          <div class="material-list-head"><div><span>Bai nop</span><h2>{{ submissions|length }} hoc sinh</h2></div><img src="{{ url_for('static', filename='img-clean/18.png') }}" alt=""></div>
+          <div class="writing-submission-list">
+            {% for item in submissions %}
+              <article class="exam-session-card"><span>{{ item['student_name'] }}</span><h3>{{ item['score'] }}/10</h3><p>Dung {{ item['correct_count'] }}/{{ item['total_questions'] }} cau - {{ item['submitted_at'] }}</p></article>
+            {% else %}
+              <article class="material-empty"><h3>Chua co bai nop</h3><p>Hoc sinh nop bai xong ket qua se hien tai day.</p></article>
+            {% endfor %}
+          </div>
+        </section>
+        <section class="exam-question-list">
+          {% for question in questions %}
+            <article class="exam-question-card"><span>Cau {{ loop.index }} - {{ question['question_type'] }}</span>{% if question['passage'] %}<p class="exam-passage">{{ question['passage'] }}</p>{% endif %}<h3>{{ question['question_text'] }}</h3><p>A. {{ question['option_a'] }}<br>B. {{ question['option_b'] }}<br>C. {{ question['option_c'] }}<br>D. {{ question['option_d'] }}</p><strong>Dap an: {{ question['correct_answer'] }}</strong></article>
+          {% endfor %}
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

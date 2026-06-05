@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Speaking AI Test - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <header class="student-topbar">
+        <a class="student-brand" href="{{ url_for('home') }}" aria-label="Lingo"><span>Lingo</span><img src="{{ url_for('static', filename='img-clean/1.png') }}" alt=""></a>
+        <nav class="student-menu teacher-menu teacher-menu-wide" aria-label="Menu giao vien">
+          <a class="student-menu-link" href="{{ url_for('home') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h5v-6h4v6h5V10"></path></svg></span><span>Home</span></a>
+          <a class="student-menu-link" href="{{ url_for('skills') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h8a2 2 0 0 0 2-2V6"></path><path d="M5 14h7a2 2 0 0 0 2-2V4"></path></svg></span><span>Ki nang</span></a>
+          <a class="student-menu-link is-active" href="{{ url_for('exam_speaking_ai') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="2"></rect><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h3"></path></svg></span><span>Thi</span></a>
+          <a class="student-menu-link" href="{{ url_for('courses') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg></span><span>Khoa hoc</span></a>
+          <a class="student-menu-link" href="{{ url_for('quizz') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v6"></path><path d="M2 12h6"></path><path d="M16 12h6"></path></svg></span><span>Quizz</span></a>
+          <a class="student-menu-link" href="{{ url_for('materials') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path></svg></span><span>Tai lieu</span></a>
+        </nav>
+      </header>
+
+      <section class="student-dashboard">
+        <div class="student-welcome">
+          <div><p class="student-eyebrow">Thi noi voi AI</p><h1>Speaking AI Test</h1></div>
+          <a class="student-logout" href="{{ url_for('logout') }}">Dang xuat</a>
+        </div>
+
+        <section class="materials-teacher-layout skill-admin-layout">
+          <form class="material-form-card" method="post" action="{% if edit_topic %}{{ url_for('exam_speaking_edit', topic_id=edit_topic['id']) }}{% else %}{{ url_for('exam_speaking_ai') }}{% endif %}">
+            <div class="material-form-head"><span>{{ 'Chinh sua' if edit_topic else 'Tao moi' }}</span><h2>Chu de van dap</h2></div>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}<ul class="flash-list">{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}
+            {% endwith %}
+            <label><span>Tieu de chu de</span><input name="title" type="text" value="{{ edit_topic['title'] if edit_topic else '' }}" required></label>
+            <label><span>Noi dung chu de</span><textarea name="topic_prompt" rows="8" required>{{ edit_topic['topic_prompt'] if edit_topic else '' }}</textarea></label>
+            <label><span>Cap do</span><input name="level" type="text" value="{{ edit_topic['level'] if edit_topic else 'A2-B1' }}" required></label>
+            <label><span>Cau hoi mo dau rieng</span><textarea name="opening_question" rows="3">{{ edit_topic['opening_question'] if edit_topic else '' }}</textarea></label>
+            <div class="material-form-actions">
+              <button type="submit">{{ 'Luu thay doi' if edit_topic else 'Luu chu de' }}</button>
+              {% if edit_topic %}<a href="{{ url_for('exam_speaking_ai') }}">Huy sua</a>{% endif %}
+            </div>
+          </form>
+
+          <div class="material-list-panel">
+            <div class="material-list-head"><div><span>Danh sach chu de</span><h2>{{ topics|length }} chu de</h2></div><img src="{{ url_for('static', filename='img-clean/13.png') }}" alt=""></div>
+            <div class="material-grid">
+              {% for topic in topics %}
+                <article class="material-box skill-lesson-box">
+                  <div class="material-type">{{ topic['level'] }}</div>
+                  <h3>{{ topic['title'] }}</h3>
+                  <p>{{ topic['topic_prompt'] }}</p>
+                  <div class="material-meta"><span>{{ topic['teacher_name'] }}</span><span>{{ topic['updated_at'] }}</span></div>
+                  <div class="material-actions">
+                    <a class="is-secondary" href="{{ url_for('exam_speaking_edit', topic_id=topic['id']) }}">Sua</a>
+                    <form method="post" action="{{ url_for('exam_speaking_delete', topic_id=topic['id']) }}"><button type="submit">Xoa</button></form>
+                  </div>
+                </article>
+              {% else %}
+                <article class="material-empty"><h3>Chua co chu de</h3><p>Tao chu de dau tien de hoc sinh vao Speaking AI Test.</p></article>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+
+        <section class="writing-submission-panel exam-session-panel">
+          <div class="material-list-head"><div><span>Ket qua hoc sinh</span><h2>{{ sessions|length }} luot</h2></div><img src="{{ url_for('static', filename='img-clean/18.png') }}" alt=""></div>
+          <div class="writing-submission-list">
+            {% for session_item in sessions %}
+              <article class="exam-session-card">
+                <div>
+                  <span>{{ session_item['student_name'] }}</span>
+                  <h3>{{ session_item['topic_title'] }}</h3>
+                  <strong>{{ session_item['score'] }}/100</strong>
+                  <p>{{ session_item['feedback'] }}</p>
+                  <small>{{ session_item['pronunciation_feedback'] }}</small>
+                </div>
+              </article>
+            {% else %}
+              <article class="material-empty"><h3>Chua co luot thi</h3><p>Ket qua Speaking AI Test se hien tai day.</p></article>
+            {% endfor %}
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quan ly bai viet - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <header class="student-topbar">
+        <a class="student-brand" href="{{ url_for('home') }}" aria-label="Lingo"><span>Lingo</span><img src="{{ url_for('static', filename='img-clean/1.png') }}" alt=""></a>
+        <nav class="student-menu teacher-menu teacher-menu-wide" aria-label="Menu giao vien">
+          <a class="student-menu-link" href="{{ url_for('home') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h5v-6h4v6h5V10"></path></svg></span><span>Home</span></a>
+          <a class="student-menu-link is-active" href="{{ url_for('skills') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h8a2 2 0 0 0 2-2V6"></path><path d="M5 14h7a2 2 0 0 0 2-2V4"></path><path d="M5 14v4"></path><path d="M9 18v2"></path></svg></span><span>Ki nang</span></a>
+          <a class="student-menu-link" href="{{ url_for('courses') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg></span><span>Khoa hoc</span></a>
+          <a class="student-menu-link" href="{{ url_for('quizz') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v6"></path><path d="M12 16v6"></path><path d="M2 12h6"></path><path d="M16 12h6"></path></svg></span><span>Quizz</span></a>
+          <a class="student-menu-link" href="{{ url_for('materials') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M9 13h6"></path></svg></span><span>Tai lieu</span></a>
+        </nav>
+      </header>
+
+      <section class="student-dashboard">
+        <div class="student-welcome">
+          <div><p class="student-eyebrow">Writing</p><h1>Viet</h1></div>
+          <a class="student-logout" href="{{ url_for('skills') }}">Quay lai</a>
+        </div>
+
+        <section class="materials-teacher-layout skill-admin-layout writing-admin-layout">
+          <form class="material-form-card" method="post" action="{% if edit_task %}{{ url_for('writing_edit', task_id=edit_task['id']) }}{% else %}{{ url_for('writing_tasks') }}{% endif %}">
+            <div class="material-form-head"><span>{{ 'Chinh sua' if edit_task else 'Tao moi' }}</span><h2>Chu de viet</h2></div>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}<ul class="flash-list">{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}
+            {% endwith %}
+            <label><span>Tieu de bai viet</span><input name="title" type="text" value="{{ edit_task['title'] if edit_task else '' }}" required></label>
+            <label><span>De bai / chu de</span><textarea name="prompt" rows="8" required>{{ edit_task['prompt'] if edit_task else '' }}</textarea></label>
+            <label><span>Thoi gian lam bai (phut)</span><input name="time_limit_minutes" type="number" min="5" max="180" value="{{ edit_task['time_limit_minutes'] if edit_task else 30 }}" required></label>
+            <div class="material-form-actions">
+              <button type="submit">{{ 'Luu thay doi' if edit_task else 'Luu chu de' }}</button>
+              {% if edit_task %}<a href="{{ url_for('writing_tasks') }}">Huy sua</a>{% endif %}
+            </div>
+          </form>
+
+          <div class="material-list-panel">
+            <div class="material-list-head"><div><span>Danh sach chu de</span><h2>{{ tasks|length }} bai</h2></div><img src="{{ url_for('static', filename='img-clean/14.png') }}" alt=""></div>
+            <div class="material-grid">
+              {% for task in tasks %}
+                <article class="material-box skill-lesson-box">
+                  <div class="material-type">Writing</div>
+                  <h3>{{ task['title'] }}</h3>
+                  <p>{{ task['prompt'] }}</p>
+                  <div class="material-meta"><span>{{ task['time_limit_minutes'] }} phut</span><span>{{ task['updated_at'] }}</span></div>
+                  <div class="material-actions">
+                    <a class="is-secondary" href="{{ url_for('writing_edit', task_id=task['id']) }}">Sua</a>
+                    <form method="post" action="{{ url_for('writing_delete', task_id=task['id']) }}"><button type="submit">Xoa</button></form>
+                  </div>
+                </article>
+              {% else %}
+                <article class="material-empty"><h3>Chua co chu de viet</h3><p>Tao chu de dau tien de hoc sinh vao lam bai.</p></article>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+
+        <section class="writing-submission-panel">
+          <div class="material-list-head"><div><span>Bai nop cua hoc sinh</span><h2>{{ submissions|length }} bai</h2></div><img src="{{ url_for('static', filename='img-clean/18.png') }}" alt=""></div>
+          <div class="writing-submission-list">
+            {% for submission in submissions %}
+              <article class="writing-submission-card">
+                <div>
+                  <span>{{ submission['student_name'] }}</span>
+                  <h3>{{ submission['task_title'] }}</h3>
+                  <p>{{ submission['content'] }}</p>
+                  <div class="writing-score-row"><strong>AI: {{ submission['ai_score'] if submission['ai_score'] is not none else '-' }}/100</strong><strong>GV: {{ submission['teacher_score'] if submission['teacher_score'] is not none else '-' }}/100</strong></div>
+                  <small>{{ submission['ai_feedback'] }}</small>
+                </div>
+                <form method="post" action="{{ url_for('writing_grade', submission_id=submission['id']) }}">
+                  <label><span>Diem giao vien</span><input name="teacher_score" type="number" min="0" max="100" value="{{ submission['teacher_score'] if submission['teacher_score'] is not none else '' }}" required></label>
+                  <label><span>Nhan xet</span><textarea name="teacher_feedback" rows="4">{{ submission['teacher_feedback'] or '' }}</textarea></label>
+                  <button type="submit">Luu diem</button>
+                </form>
+              </article>
+            {% else %}
+              <article class="material-empty"><h3>Chua co bai nop</h3><p>Khi hoc sinh nop bai viet, giao vien se cham tai day.</p></article>
+            {% endfor %}
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

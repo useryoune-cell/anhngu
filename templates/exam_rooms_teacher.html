@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Phong thi - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <header class="student-topbar">
+        <a class="student-brand" href="{{ url_for('home') }}" aria-label="Lingo"><span>Lingo</span><img src="{{ url_for('static', filename='img-clean/1.png') }}" alt=""></a>
+        <nav class="student-menu teacher-menu teacher-menu-wide" aria-label="Menu giao vien">
+          <a class="student-menu-link" href="{{ url_for('home') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h5v-6h4v6h5V10"></path></svg></span><span>Home</span></a>
+          <a class="student-menu-link is-active" href="{{ url_for('exam_rooms') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="2"></rect><path d="M9 8h6"></path><path d="M9 12h6"></path></svg></span><span>Thi</span></a>
+          <a class="student-menu-link" href="{{ url_for('exam_speaking_ai') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18"></path><path d="M5 8h14"></path></svg></span><span>AI Test</span></a>
+          <a class="student-menu-link" href="{{ url_for('courses') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg></span><span>Khoa hoc</span></a>
+          <a class="student-menu-link" href="{{ url_for('materials') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path></svg></span><span>Tai lieu</span></a>
+        </nav>
+      </header>
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><p class="student-eyebrow">Thi realtime</p><h1>Phong thi</h1></div><a class="student-logout" href="{{ url_for('logout') }}">Dang xuat</a></div>
+        <section class="materials-teacher-layout skill-admin-layout">
+          <form class="material-form-card" method="post" action="{{ url_for('exam_rooms') }}" enctype="multipart/form-data">
+            <div class="material-form-head"><span>Upload Word</span><h2>Tao phong thi</h2></div>
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}<ul class="flash-list">{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}
+            {% endwith %}
+            <label><span>Tieu de phong thi</span><input name="title" type="text" required></label>
+            <label><span>Mo ta ngan</span><textarea name="description" rows="4"></textarea></label>
+            <label><span>Ngay gio mo phong</span><input name="start_at" type="datetime-local" required></label>
+            <label><span>Thoi gian lam bai (phut)</span><input name="duration_minutes" type="number" min="5" max="240" value="45" required></label>
+            <label><span>File Word .docx</span><input name="exam_file" type="file" accept=".docx" required></label>
+            <div class="material-form-actions"><button type="submit">Doc file va preview</button></div>
+          </form>
+
+          <div class="material-list-panel">
+            <div class="material-list-head"><div><span>Danh sach phong thi</span><h2>{{ rooms|length }} phong</h2></div><img src="{{ url_for('static', filename='img-clean/18.png') }}" alt=""></div>
+            <div class="material-grid">
+              {% for room in rooms %}
+                <article class="material-box skill-lesson-box exam-room-box">
+                  <div class="material-type">{{ room['total_questions'] }} cau</div>
+                  <h3>{{ room['title'] }}</h3>
+                  <p>{{ room['description'] or room['source_file_name'] }}</p>
+                  <div class="material-meta"><span>Mo: {{ room['start_at'] }}</span><span>{{ room['duration_minutes'] }} phut</span></div>
+                  <div class="material-meta"><span>{{ room['registration_count'] }} dang ky</span><span>{{ room['submission_count'] }} bai nop</span></div>
+                  <div class="material-actions">
+                    <a href="{{ url_for('exam_room_detail', room_id=room['id']) }}">Xem</a>
+                    <form method="post" action="{{ url_for('exam_room_delete', room_id=room['id']) }}"><button type="submit">Xoa</button></form>
+                  </div>
+                </article>
+              {% else %}
+                <article class="material-empty"><h3>Chua co phong thi</h3><p>Upload file Word .docx de tao phong thi dau tien.</p></article>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

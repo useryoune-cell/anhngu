@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Preview phong thi - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><p class="student-eyebrow">Preview Word</p><h1>{{ title }}</h1></div><a class="student-logout" href="{{ url_for('exam_rooms') }}">Quay lai</a></div>
+        <form class="exam-preview-form" method="post" action="{{ url_for('exam_room_save') }}">
+          <input type="hidden" name="title" value="{{ title }}">
+          <input type="hidden" name="description" value="{{ description }}">
+          <input type="hidden" name="start_at" value="{{ start_at }}">
+          <input type="hidden" name="duration_minutes" value="{{ duration_minutes }}">
+          <input type="hidden" name="source_file_name" value="{{ source_file_name }}">
+          <input type="hidden" name="question_count" value="{{ questions|length }}">
+          <section class="materials-hero-card skill-page-hero">
+            <div><span>{{ questions|length }} cau hoi da tach</span><h2>Kiem tra va sua truc tiep truoc khi luu</h2><p>Neu cau nao tach sai, giao vien sua ngay trong cac o ben duoi roi bam luu phong thi.</p></div>
+            <img src="{{ url_for('static', filename='img-clean/13.png') }}" alt="">
+          </section>
+          <div class="exam-preview-grid">
+            {% for question in questions %}
+              {% set idx = loop.index %}
+              <article class="exam-preview-card">
+                <div class="exam-preview-head"><span>Cau {{ idx }}</span><select name="q_{{ idx }}_type"><option value="LN1" {% if question.question_type == 'LN1' %}selected{% endif %}>LN1</option><option value="LN2" {% if question.question_type == 'LN2' %}selected{% endif %}>LN2</option></select></div>
+                <label><span>Doan van LN2</span><textarea name="q_{{ idx }}_passage" rows="5">{{ question.passage }}</textarea></label>
+                <label><span>Cau hoi</span><textarea name="q_{{ idx }}_text" rows="3" required>{{ question.question_text }}</textarea></label>
+                <div class="exam-option-grid">
+                  <label><span>A</span><input name="q_{{ idx }}_a" value="{{ question.option_a }}" required></label>
+                  <label><span>B</span><input name="q_{{ idx }}_b" value="{{ question.option_b }}" required></label>
+                  <label><span>C</span><input name="q_{{ idx }}_c" value="{{ question.option_c }}" required></label>
+                  <label><span>D</span><input name="q_{{ idx }}_d" value="{{ question.option_d }}" required></label>
+                </div>
+                <label><span>Dap an dung</span><select name="q_{{ idx }}_correct" required>{% for key in ['A','B','C','D'] %}<option value="{{ key }}" {% if question.correct_answer == key %}selected{% endif %}>{{ key }}</option>{% endfor %}</select></label>
+              </article>
+            {% endfor %}
+          </div>
+          <div class="exam-save-bar"><a href="{{ url_for('exam_rooms') }}">Huy</a><button type="submit">Luu phong thi</button></div>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

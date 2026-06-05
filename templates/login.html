@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đăng nhập - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="site-shell auth-page">
+      <section class="auth-scene auth-scene-login" aria-label="Đăng nhập Lingo">
+        <img class="auth-bunny auth-bunny-login" src="{{ url_for('static', filename='img-clean/3.png') }}" alt="">
+
+        <div class="auth-card">
+          <a class="auth-logo" href="{{ url_for('index') }}" aria-label="Lingo">
+            <span class="auth-logo-mark">
+              <img src="{{ url_for('static', filename='img-clean/1.png') }}" alt="">
+            </span>
+            <span class="auth-brand">Lingo <img src="{{ url_for('static', filename='img-clean/4.png') }}" alt=""></span>
+          </a>
+          <p>Đăng nhập để tiếp tục hành trình!</p>
+
+          {% with messages = get_flashed_messages() %}
+            {% if messages %}
+              <ul class="flash-list">
+                {% for msg in messages %}
+                  <li>{{ msg }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          {% endwith %}
+
+          <form method="post" action="{{ url_for('login') }}" class="auth-form">
+            <label class="auth-field">
+              <span class="auth-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M4 6h16v12H4z"></path>
+                  <path d="m4 7 8 6 8-6"></path>
+                </svg>
+              </span>
+              <input name="identifier" type="text" placeholder="Email hoặc tên đăng nhập" required>
+            </label>
+            <label class="auth-field">
+              <span class="auth-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <rect x="5" y="10" width="14" height="10" rx="2"></rect>
+                  <path d="M8 10V7a4 4 0 0 1 8 0v3"></path>
+                </svg>
+              </span>
+              <input name="password" type="password" placeholder="Mật khẩu" required>
+            </label>
+            <button class="auth-submit" type="submit">Đăng nhập</button>
+          </form>
+
+          <div class="auth-switch">
+            Chưa có tài khoản? <a href="{{ url_for('register') }}">Đăng ký ngay</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ lesson['title'] }} - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><p class="student-eyebrow">Speaking</p><h1>{{ lesson['title'] }}</h1></div><a class="student-logout" href="{{ url_for('speaking_lessons') }}">Quay lai</a></div>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}<ul class="flash-list">{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}
+        {% endwith %}
+        <section class="speaking-workspace">
+          <article class="speaking-practice-card">
+            <div class="speaking-head">
+              <div><span>Doan mau</span><h2>Doc ro tung tu</h2></div>
+              <img src="{{ url_for('static', filename='img-clean/11.png') }}" alt="">
+            </div>
+            <div class="speaking-passage" id="speakingPassage">
+              {% for word in expected_words %}
+                <span class="speaking-word" data-word="{{ word }}">{{ word }}</span>
+              {% endfor %}
+            </div>
+            {% if user['role'] == 'student' %}
+              <div class="speaking-controls">
+                <button type="button" id="startSpeaking">Bat mic</button>
+                <button type="button" class="is-secondary" id="stopSpeaking">Dung</button>
+              </div>
+              <div class="speaking-transcript"><span>Transcript</span><p id="transcriptText">{{ attempt['transcript'] if attempt else 'Chua ghi am.' }}</p></div>
+              <form method="post" action="{{ url_for('speaking_detail', lesson_id=lesson['id']) }}" id="speakingForm">
+                <input type="hidden" name="transcript" id="transcriptInput">
+                <input type="hidden" name="score" id="scoreInput">
+                <input type="hidden" name="missed_words_json" id="missedWordsInput">
+                <button type="submit" id="saveSpeaking" disabled>Luu ket qua</button>
+              </form>
+            {% endif %}
+          </article>
+
+          <aside class="speaking-feedback-card">
+            <span>Ket qua phat am</span>
+            <strong id="speakingScore">{{ attempt['score'] if attempt else 0 }}/100</strong>
+            <p>Tu mau xanh la tu da nhan dien dung. Tu mau do la tu can doc lai cham hon.</p>
+            <div class="word-feedback-list" id="wordFeedbackList">
+              {% for item in attempt_missed_words %}
+                <article><b>{{ item.word }}</b><small>{{ item.pronunciation }} - {{ item.meaning }}</small></article>
+              {% else %}
+                <article><b>San sang</b><small>Bat mic de he thong ghi nhan tu can sua.</small></article>
+              {% endfor %}
+            </div>
+          </aside>
+        </section>
+      </section>
+    </main>
+    <script>
+      const expectedWords = {{ expected_words|tojson }};
+      const wordNotes = {{ word_notes|tojson }};
+      const transcriptText = document.getElementById('transcriptText');
+      const scoreEl = document.getElementById('speakingScore');
+      const startBtn = document.getElementById('startSpeaking');
+      const stopBtn = document.getElementById('stopSpeaking');
+      const saveBtn = document.getElementById('saveSpeaking');
+      const transcriptInput = document.getElementById('transcriptInput');
+      const scoreInput = document.getElementById('scoreInput');
+      const missedWordsInput = document.getElementById('missedWordsInput');
+      const feedbackList = document.getElementById('wordFeedbackList');
+      const wordEls = [...document.querySelectorAll('.speaking-word')];
+      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      let recognition;
+      let liveTranscript = '';
+
+      function normalize(text) {
+        return (text || '').toLowerCase().match(/[a-z']+/g) || [];
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#039;'
+        })[char]);
+      }
+
+      function noteFor(word) {
+        return wordNotes.find((item) => String(item.word || '').toLowerCase() === word) || {
+          word,
+          pronunciation: `/${word}/`,
+          meaning: 'Chua co nghia tu dong.'
+        };
+      }
+
+      function evaluate(transcript) {
+        const spoken = normalize(transcript);
+        let cursor = 0;
+        let correct = 0;
+        const missed = [];
+
+        wordEls.forEach((el, index) => {
+          const expected = expectedWords[index];
+          const foundAt = spoken.indexOf(expected, cursor);
+          el.classList.remove('is-correct', 'is-wrong');
+          if (foundAt >= cursor) {
+            el.classList.add('is-correct');
+            cursor = foundAt + 1;
+            correct += 1;
+          } else {
+            el.classList.add('is-wrong');
+            missed.push(noteFor(expected));
+          }
+        });
+
+        const score = expectedWords.length ? Math.round((correct / expectedWords.length) * 100) : 0;
+        scoreEl.textContent = `${score}/100`;
+        transcriptInput.value = transcript;
+        scoreInput.value = score;
+        missedWordsInput.value = JSON.stringify(missed);
+        saveBtn.disabled = false;
+        feedbackList.innerHTML = missed.length
+          ? missed.map((item) => `<article><b>${escapeHtml(item.word)}</b><small>${escapeHtml(item.pronunciation)} - ${escapeHtml(item.meaning)}</small></article>`).join('')
+          : '<article><b>Tot lam</b><small>Chua phat hien tu can sua trong lan doc nay.</small></article>';
+      }
+
+      if (startBtn && !Recognition) {
+        startBtn.disabled = true;
+        transcriptText.textContent = 'Trinh duyet nay chua ho tro Speech Recognition. Hay dung Chrome hoac Edge.';
+      }
+
+      if (startBtn && Recognition) {
+        recognition = new Recognition();
+        recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = (event) => {
+          liveTranscript = [...event.results].map((result) => result[0].transcript).join(' ');
+          transcriptText.textContent = liveTranscript;
+          evaluate(liveTranscript);
+        };
+        recognition.onend = () => evaluate(liveTranscript);
+        startBtn.addEventListener('click', () => {
+          liveTranscript = '';
+          transcriptText.textContent = 'Dang nghe...';
+          recognition.start();
+        });
+        stopBtn.addEventListener('click', () => recognition.stop());
+      }
+    </script>
+  </body>
+</html>

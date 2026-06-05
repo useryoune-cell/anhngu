@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Phong thi - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <header class="student-topbar">
+        <a class="student-brand" href="{{ url_for('home') }}" aria-label="Lingo"><span>Lingo</span><img src="{{ url_for('static', filename='img-clean/1.png') }}" alt=""></a>
+        <nav class="student-menu" aria-label="Menu hoc sinh">
+          <a class="student-menu-link" href="{{ url_for('home') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h5v-6h4v6h5V10"></path></svg></span><span>Home</span></a>
+          <div class="student-menu-link has-submenu is-active" tabindex="0"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="2"></rect><path d="M9 8h6"></path><path d="M9 12h6"></path></svg></span><span>Thi</span><div class="student-submenu"><a href="{{ url_for('exam_speaking_ai') }}">Speaking AI Test</a><a href="{{ url_for('exam_rooms') }}">Phong thi</a></div></div>
+          <a class="student-menu-link" href="{{ url_for('courses') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg></span><span>Khoa hoc</span></a>
+          <a class="student-menu-link" href="{{ url_for('materials') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path></svg></span><span>Tai lieu</span></a>
+          <a class="student-menu-link" href="{{ url_for('profile') }}"><span class="student-menu-icon" aria-hidden="true"><img src="{% if user['avatar_path'] %}{{ url_for('static', filename=user['avatar_path']) }}{% else %}{{ url_for('static', filename='img-clean/1.png') }}{% endif %}" alt=""></span><span>Profile</span></a>
+        </nav>
+      </header>
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><h1>Phong thi</h1></div><a class="student-logout" href="{{ url_for('home') }}">Home</a></div>
+        {% with messages = get_flashed_messages() %}{% if messages %}<ul class="flash-list">{% for msg in messages %}<li>{{ msg }}</li>{% endfor %}</ul>{% endif %}{% endwith %}
+        <div class="material-grid material-grid-wide">
+          {% for room in rooms %}
+            <article class="material-box skill-lesson-box {% if room.is_submitted %}is-completed{% endif %}">
+              <div class="material-type">{{ room.status }}</div>
+              <h3>{{ room['title'] }}</h3>
+              <p>{{ room['description'] or room['source_file_name'] }}</p>
+              <div class="material-meta"><span>Mo: {{ room['start_at'] }}</span><span>{{ room['duration_minutes'] }} phut</span></div>
+              <div class="material-meta"><span>{{ room['total_questions'] }} cau</span><span>Diem: {{ room.score if room.score is not none else '-' }}/10</span></div>
+              <div class="material-actions">
+                {% if room.is_submitted %}
+                  <a href="{{ url_for('exam_room_detail', room_id=room['id']) }}">Xem diem</a>
+                {% elif room.is_registered %}
+                  <a href="{{ url_for('exam_room_detail', room_id=room['id']) }}">{{ 'Vao lam' if room.status == 'open' else 'Cho gio mo' }}</a>
+                {% else %}
+                  <form method="post" action="{{ url_for('exam_room_register', room_id=room['id']) }}"><button type="submit">Dang ky</button></form>
+                {% endif %}
+              </div>
+            </article>
+          {% else %}
+            <article class="material-empty"><h3>Chua co phong thi</h3><p>Khi giao vien tao phong thi, hoc sinh se thay tai day.</p></article>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

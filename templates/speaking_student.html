@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Luyen noi - Lingo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <main class="student-home">
+      <header class="student-topbar">
+        <a class="student-brand" href="{{ url_for('home') }}" aria-label="Lingo"><span>Lingo</span><img src="{{ url_for('static', filename='img-clean/1.png') }}" alt=""></a>
+        <nav class="student-menu" aria-label="Menu hoc sinh">
+          <a class="student-menu-link" href="{{ url_for('home') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h5v-6h4v6h5V10"></path></svg></span><span>Home</span></a>
+          <a class="student-menu-link is-active" href="{{ url_for('skills') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h8a2 2 0 0 0 2-2V6"></path><path d="M5 14h7a2 2 0 0 0 2-2V4"></path></svg></span><span>On luyen</span></a>
+          <a class="student-menu-link" href="{{ url_for('courses') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg></span><span>Khoa hoc</span></a>
+          <a class="student-menu-link" href="{{ url_for('quizz') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v6"></path><path d="M2 12h6"></path><path d="M16 12h6"></path></svg></span><span>Quizz</span></a>
+          <a class="student-menu-link" href="{{ url_for('profile') }}"><span class="student-menu-icon" aria-hidden="true"><img src="{% if user['avatar_path'] %}{{ url_for('static', filename=user['avatar_path']) }}{% else %}{{ url_for('static', filename='img-clean/1.png') }}{% endif %}" alt=""></span><span>Profile</span></a>
+        </nav>
+      </header>
+      <section class="student-dashboard">
+        <div class="student-welcome"><div><h1>Noi</h1></div><a class="student-logout" href="{{ url_for('skills') }}">Quay lai</a></div>
+        <section class="materials-hero-card skill-page-hero"><div><span>Speaking</span><h2>Bat mic doc theo doan mau, tu dung se sang mau xanh</h2></div><img src="{{ url_for('static', filename='img-clean/13.png') }}" alt=""></section>
+        <div class="material-grid material-grid-wide">
+          {% for lesson in lessons %}
+            <article class="material-box skill-lesson-box {% if lesson.is_completed %}is-completed{% endif %}">
+              <div class="material-type">{{ 'Da luyen' if lesson.is_completed else 'Speaking' }}</div>
+              <h3>{{ lesson['title'] }}</h3>
+              <p>{{ lesson['passage'] }}</p>
+              <div class="material-meta"><span>{{ lesson['teacher_name'] }}</span><span>Diem: {{ lesson.score if lesson.score is not none else '-' }}/100</span></div>
+              <div class="material-actions"><a href="{{ url_for('speaking_detail', lesson_id=lesson['id']) }}">{{ 'Luyen lai' if lesson.is_completed else 'Vao noi' }}</a></div>
+            </article>
+          {% else %}
+            <article class="material-empty"><h3>Chua co bai noi</h3><p>Khi giao vien tao bai noi, hoc sinh se thay tai day.</p></article>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -7,7 +7,7 @@
     <title>Lingo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="{{ url_for('static', filename='js/animations.js') }}" defer></script>
   </head>
@@ -23,28 +23,30 @@
               <img src="{{ url_for('static', filename='img-clean/1.png') }}" alt="">
             </a>
             <nav class="nav-links" aria-label="Chức năng">
-              <a href="#idea">Chức năng 1</a>
-              <a href="#roadmap">Chức năng 2</a>
-              <a href="#method">Chức năng 3</a>
-              <a class="is-yellow" href="#tech">Chức năng 4</a>
+              <a href="#idea">Ôn luyện</a>
+              <a href="#roadmap">Thi</a>
+              <a href="#method">Khóa học</a>
+              <a class="is-yellow" href="#tech">Game</a>
             </nav>
           </header>
 
           <div class="hero-card">
             <div class="hero-copy">
               <h1>Lingo <img src="{{ url_for('static', filename='img-clean/4.png') }}" alt=""></h1>
-              <p>Đồng hành cùng bạn<br>trên hành trình học ngoại ngữ</p>
-              <form class="signup" action="#" method="post">
+              <p class="font-paytone">Đồng hành cùng bạn<br>trên hành trình học ngoại ngữ</p>
+              <div class="signup" role="group" aria-label="Đăng ký nhanh">
                 <div class="form-row">
                   <label>
-                    <input name="name" type="text" placeholder="Họ và tên" aria-label="Họ và tên">
+                    <input type="text" placeholder="Họ và tên" aria-label="Họ và tên">
                   </label>
                   <label>
-                    <input name="phone" type="tel" placeholder="Số điện thoại" aria-label="Số điện thoại">
+                    <input type="tel" placeholder="Số điện thoại" aria-label="Số điện thoại">
                   </label>
                 </div>
-                <button type="submit">Đăng ký nào!</button>
-              </form>
+                <a href="{{ url_for('login') }}" class="hero-register" style="display:inline-block; text-decoration:none;">
+                  <button type="button">Đăng ký nào!</button>
+                </a>
+              </div>
             </div>
           </div>
 
@@ -58,7 +60,7 @@
           <img class="idea-bunny" src="{{ url_for('static', filename='img-clean/5.png') }}" alt="">
           <img class="spark-star" src="{{ url_for('static', filename='img-clean/4.png') }}" alt="">
           <div class="idea-copy">
-            <h2>Ý tưởng cốt lõi</h2>
+            <h2 class="font-paytone">Ý tưởng cốt lõi</h2>
             <p>Biến việc học ngoại ngữ thành<br>một cuộc phiêu lưu khám phá<br>thế giới cùng <strong>Lingo</strong></p>
           </div>
           <img class="sun" src="{{ url_for('static', filename='img-clean/6.png') }}" alt="">
@@ -68,7 +70,7 @@
       <section class="roadmap" id="roadmap">
         <div class="section-stage roadmap-stage">
           <img class="map-icon" src="{{ url_for('static', filename='img-clean/7.png') }}" alt="">
-          <h2>Lộ trình học</h2>
+          <h2 class="font-paytone">Lộ trình học</h2>
           <div class="roadmap-content">
             <div class="timeline-area">
               <img class="timeline" src="{{ url_for('static', filename='img-clean/8.png') }}" alt="">
@@ -100,7 +102,7 @@
       <section class="method" id="method">
         <div class="section-stage method-stage">
           <img class="books-icon" src="{{ url_for('static', filename='img-clean/11.png') }}" alt="">
-          <h2>Phương pháp học</h2>
+          <h2 class="font-paytone">Phương pháp học</h2>
           <div class="method-grid">
             <article>
               <h3>Learn</h3>
@@ -136,7 +138,7 @@
       <section class="learning-map">
         <div class="section-stage learning-stage">
           <img class="brain-icon" src="{{ url_for('static', filename='img-clean/13.png') }}" alt="">
-          <h2>Sơ đồ học</h2>
+          <h2 class="font-paytone">Sơ đồ học</h2>
           <div class="cycle">
             <img class="crown-icon" src="{{ url_for('static', filename='img-clean/14.png') }}" alt="">
             <span class="node node-lesson">Khám phá bài học</span>
@@ -162,7 +164,7 @@
           <img class="star-bunny" src="{{ url_for('static', filename='img-clean/16.png') }}" alt="">
           <div class="tech-content">
             <div class="tech-title">
-              <h2>Công nghệ nổi bật</h2>
+              <h2 class="font-paytone">Công nghệ nổi bật</h2>
               <img src="{{ url_for('static', filename='img-clean/15.png') }}" alt="">
             </div>
             <div class="tech-pills">
