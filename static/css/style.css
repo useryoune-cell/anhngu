@@ -208,8 +208,16 @@ h2 {
 
 .brand img {
   width: 86px;
+  height: 86px;
+  flex: 0 0 86px;
   margin-left: 8px;
+  object-fit: contain;
+  display: block;
   animation: mascot-peek 2400ms ease-in-out 900ms infinite;
+}
+
+.brand-bunny {
+  min-width: 86px;
 }
 
 .nav-links {

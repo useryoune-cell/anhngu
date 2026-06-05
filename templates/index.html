@@ -20,7 +20,12 @@
           <header class="nav">
             <a class="brand" href="/" aria-label="Lingo">
               <span>Lingo</span>
-              <img src="{{ url_for('static', filename='img-clean/1.png') }}" alt="">
+              <img
+                class="brand-bunny"
+                src="{{ url_for('static', filename='img-clean/1.png') }}"
+                alt=""
+                onerror="this.onerror=null; this.src='{{ url_for('static', filename='img-clean/3.png') }}';"
+              >
             </a>
             <nav class="nav-links" aria-label="Chức năng">
               <a href="#idea">Ôn luyện</a>
