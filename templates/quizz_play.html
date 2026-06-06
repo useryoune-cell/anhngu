@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=quiz-grid-1">
   </head>
   <body>
     <main class="student-home">
@@ -36,13 +36,15 @@
           {% for question in questions %}
             <fieldset class="quiz-play-question {% if loop.first %}is-active{% endif %}" data-question-step>
               <legend>{{ question['question_text'] }}</legend>
-              {% for key, text in [('A', question['option_a']), ('B', question['option_b']), ('C', question['option_c']), ('D', question['option_d'])] %}
-                <label class="quiz-choice">
-                  <input type="radio" name="answer_{{ question['id'] }}" value="{{ key }}">
-                  <span>{{ key }}</span>
-                  <strong>{{ text }}</strong>
-                </label>
-              {% endfor %}
+              <div class="quiz-answer-grid">
+                {% for key, text in [('A', question['option_a']), ('B', question['option_b']), ('C', question['option_c']), ('D', question['option_d'])] %}
+                  <label class="quiz-choice">
+                    <input type="radio" name="answer_{{ question['id'] }}" value="{{ key }}">
+                    <span>{{ key }}</span>
+                    <strong>{{ text }}</strong>
+                  </label>
+                {% endfor %}
+              </div>
             </fieldset>
           {% endfor %}
 

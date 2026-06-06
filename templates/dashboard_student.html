@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=home-feature-square-1">
   </head>
   <body>
     <main class="student-home">
@@ -35,23 +35,7 @@
             </div>
           </div>
 
-          <div class="student-menu-link has-submenu" tabindex="0">
-            <span class="student-menu-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="2"></rect><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h3"></path></svg>
-            </span>
-            <span>Thi</span>
-            <div class="student-submenu">
-              <a href="{{ url_for('exam_speaking_ai') }}">Speaking AI Test</a>
-              <a href="{{ url_for('exam_rooms') }}">Phòng thi</a>
-            </div>
-          </div>
-
-          <a class="student-menu-link" href="{{ url_for('courses') }}">
-            <span class="student-menu-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg>
-            </span>
-            <span>Khóa học</span>
-          </a>
+          <a class="student-menu-link" href="{{ url_for('exam_speaking_ai') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18"></path><path d="M5 8h14"></path></svg></span><span>Speaking AI</span></a>
 
           <div class="student-menu-link has-submenu" tabindex="0">
             <span class="student-menu-icon" aria-hidden="true">
@@ -60,15 +44,10 @@
             <span>Game</span>
             <div class="student-submenu">
               <a href="{{ url_for('quizz') }}">Quizz</a>
+              <a href="{{ url_for('frog_game') }}">Ếch vui vẻ</a>
+              <a href="{{ url_for('rank_kind') }}">Rank kind</a>
             </div>
           </div>
-
-          <a class="student-menu-link" href="{{ url_for('materials') }}">
-            <span class="student-menu-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M9 13h6"></path><path d="M9 17h6"></path></svg>
-            </span>
-            <span>Tài liệu</span>
-          </a>
 
           <a class="student-menu-link" href="{{ url_for('profile') }}">
             <span class="student-menu-icon" aria-hidden="true">
@@ -117,76 +96,70 @@
                 <strong>{{ home_data.best_score }}</strong>
                 <p>{{ home_data.exam_count }} lượt thi đã ghi nhận</p>
               </article>
-
-              <article class="metric-card">
-                <span>Xếp hạng hiện tại</span>
-                <strong>#{{ home_data.current_rank }}</strong>
-                <p>Dựa trên điểm cao nhất trong phòng thi</p>
-              </article>
             </div>
             <div class="next-action-content">
               <span>Gợi ý tiếp theo</span>
               <h2>Luyện kĩ năng Viết</h2>
               <p>Hoàn thành 1 bài luyện viết ngắn để nâng điểm kĩ năng thấp nhất hôm nay.</p>
               <div class="next-action-buttons">
-                <a href="{{ url_for('courses') }}">Tiếp tục học</a>
-                <a class="is-secondary" href="{{ url_for('exam_rooms') }}">Vào phòng thi</a>
+                <a href="{{ url_for('skills') }}">Luyện kỹ năng</a>
+                <a class="is-secondary" href="{{ url_for('exam_speaking_ai') }}">Speaking AI</a>
               </div>
             </div>
             <img class="home-bunny" src="{{ url_for('static', filename='img-clean/10.png') }}" alt="">
           </section>
         </div>
 
-        <section class="leaderboard-card">
-          <div class="leaderboard-head">
-            <div>
-              <h2>Bảng xếp hạng</h2>
-              <span class="leaderboard-badge">Top 50</span>
-            </div>
-            <span>Điểm thi cao nhất</span>
+        <section class="home-feature-section">
+          <div class="home-feature-head">
+            <h2>Luyện kỹ năng</h2>
+            <a href="{{ url_for('skills') }}">Tất cả</a>
           </div>
-
-          <div class="leaderboard-podium">
-            {% for row in home_data.leaderboard[:3] %}
-              <article class="podium-card podium-rank-{{ row.rank }}">
-                <span class="podium-medal">🏅<i>{{ row.rank }}</i></span>
-                <div class="player-avatar">{{ row.fullname.split()[-1][:3].upper() }}</div>
-                <h3>{{ row.fullname }}</h3>
-                <strong>{{ row.score }}</strong>
-                <span>#{{ row.rank }}</span>
-              </article>
-            {% endfor %}
+          <div class="home-feature-strip">
+            <a class="home-feature-box" href="{{ url_for('listening_lessons') }}">
+              <img src="{{ url_for('static', filename='avatar/nghe.png') }}" alt="">
+              <span>Nghe</span>
+            </a>
+            <a class="home-feature-box" href="{{ url_for('speaking_lessons') }}">
+              <img src="{{ url_for('static', filename='avatar/noi.png') }}" alt="">
+              <span>Nói</span>
+            </a>
+            <a class="home-feature-box" href="{{ url_for('writing_tasks') }}">
+              <img src="{{ url_for('static', filename='avatar/viet.png') }}" alt="">
+              <span>Luyện viết</span>
+            </a>
+            <a class="home-feature-box" href="{{ url_for('exam_speaking_ai') }}">
+              <img src="{{ url_for('static', filename='avatar/speaking_ai.png') }}" alt="">
+              <span>Speaking AI</span>
+            </a>
           </div>
+        </section>
 
-          <div class="leaderboard-table-wrap">
-            <table class="leaderboard-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Người chơi</th>
-                  <th>Điểm</th>
-                  <th>Xếp hạng</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in home_data.leaderboard %}
-                  <tr class="{% if row.fullname == user['fullname'] %}is-current-user{% endif %}">
-                    <td>{{ row.rank }}</td>
-                    <td>
-                      <span class="leader-player">
-                        <span>{{ row.fullname.split()[-1][:3].upper() }}</span>
-                        <strong>{{ row.fullname }}</strong>
-                        {% if row.fullname == user['fullname'] %}
-                          <i>Bạn</i>
-                        {% endif %}
-                      </span>
-                    </td>
-                    <td>{{ row.score }}</td>
-                    <td>#{{ row.rank }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
+        {% set game_package = namespace(item=None) %}
+        {% for package in game_packages %}
+          {% if game_package.item is none and package['question_count'] == 10 %}
+            {% set game_package.item = package %}
+          {% endif %}
+        {% endfor %}
+
+        <section class="home-feature-section">
+          <div class="home-feature-head">
+            <h2>Game</h2>
+            <a href="{{ url_for('quizz') }}">Tất cả</a>
+          </div>
+          <div class="home-feature-strip home-game-strip">
+            <a class="home-feature-box" href="{% if game_package.item %}{{ url_for('quizz_play', package_id=game_package.item['id']) }}{% else %}{{ url_for('quizz') }}{% endif %}">
+              <img src="{{ url_for('static', filename='avatar/quizz.png') }}" alt="">
+              <span>Quizz</span>
+            </a>
+            <a class="home-feature-box" href="{% if game_package.item %}{{ url_for('frog_game_play', package_id=game_package.item['id']) }}{% else %}{{ url_for('quizz') }}{% endif %}">
+              <img src="{{ url_for('static', filename='avatar/game_ech.png') }}" alt="">
+              <span>Ếch vui vẻ</span>
+            </a>
+            <a class="home-feature-box" href="{{ url_for('rank_kind') }}">
+              <img src="{{ url_for('static', filename='avatar/game_pvp.png') }}" alt="">
+              <span>Rank kind</span>
+            </a>
           </div>
         </section>
       </section>

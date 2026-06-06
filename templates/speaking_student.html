@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="vi">
   <head>
     <meta charset="utf-8">
@@ -16,8 +16,7 @@
         <nav class="student-menu" aria-label="Menu hoc sinh">
           <a class="student-menu-link" href="{{ url_for('home') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h5v-6h4v6h5V10"></path></svg></span><span>Home</span></a>
           <a class="student-menu-link is-active" href="{{ url_for('skills') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 18h8a2 2 0 0 0 2-2V6"></path><path d="M5 14h7a2 2 0 0 0 2-2V4"></path></svg></span><span>On luyen</span></a>
-          <a class="student-menu-link" href="{{ url_for('courses') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg></span><span>Khoa hoc</span></a>
-          <a class="student-menu-link" href="{{ url_for('quizz') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v6"></path><path d="M2 12h6"></path><path d="M16 12h6"></path></svg></span><span>Quizz</span></a>
+          <div class="student-menu-link has-submenu" tabindex="0"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2v6"></path><path d="M2 12h6"></path><path d="M16 12h6"></path></svg></span><span>Game</span><div class="student-submenu"><a href="{{ url_for('quizz') }}">Quizz</a><a href="{{ url_for('frog_game') }}">Ếch vui vẻ</a><a href="{{ url_for('rank_kind') }}">Rank kind</a></div></div>
           <a class="student-menu-link" href="{{ url_for('profile') }}"><span class="student-menu-icon" aria-hidden="true"><img src="{% if user['avatar_path'] %}{{ url_for('static', filename=user['avatar_path']) }}{% else %}{{ url_for('static', filename='img-clean/1.png') }}{% endif %}" alt=""></span><span>Profile</span></a>
         </nav>
       </header>

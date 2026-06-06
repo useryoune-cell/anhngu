@@ -30,29 +30,12 @@
             </span>
             <span>Kĩ năng</span>
           </a>
-          <a class="student-menu-link" href="{{ url_for('courses') }}">
-            <span class="student-menu-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2"></path></svg>
-            </span>
-            <span>Khóa học</span>
-          </a>
-          <a class="student-menu-link" href="{{ url_for('exam_rooms') }}">
-            <span class="student-menu-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><rect x="7" y="4" width="10" height="16" rx="2"></rect><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h3"></path></svg>
-            </span>
-            <span>Thi</span>
-          </a>
+          <a class="student-menu-link" href="{{ url_for('exam_speaking_ai') }}"><span class="student-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v18"></path><path d="M5 8h14"></path></svg></span><span>Speaking AI</span></a>
           <a class="student-menu-link" href="{{ url_for('quizz') }}">
             <span class="student-menu-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24"><path d="M12 2v6"></path><path d="M12 16v6"></path><path d="M2 12h6"></path><path d="M16 12h6"></path><path d="m4.9 4.9 4.2 4.2"></path><path d="m14.9 14.9 4.2 4.2"></path><path d="m19.1 4.9-4.2 4.2"></path><path d="m9.1 14.9-4.2 4.2"></path></svg>
             </span>
             <span>Quizz</span>
-          </a>
-          <a class="student-menu-link" href="{{ url_for('materials') }}">
-            <span class="student-menu-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"></path><path d="M15 3v5h5"></path><path d="M9 13h6"></path><path d="M9 17h6"></path></svg>
-            </span>
-            <span>Tài liệu</span>
           </a>
           <a class="student-menu-link" href="{{ url_for('profile') }}">
             <span class="student-menu-icon" aria-hidden="true">
@@ -75,10 +58,10 @@
         <section class="teacher-home-grid">
           <article class="teacher-home-card">
             <span>Chức năng chính</span>
-            <h2>Quản lý khóa học và tài liệu</h2>
-            <p>Tạo bài học, gói quizz 10 câu hoặc upload tài liệu để học sinh mở trực tiếp trong Lingo.</p>
-            <a href="{{ url_for('courses') }}">Vào khóa học</a>
-            <a href="{{ url_for('exam_rooms') }}">Phòng thi</a>
+            <h2>Quản lý luyện tập và kiểm tra</h2>
+            <p>Tạo bài luyện kỹ năng, gói quizz 10 câu và Speaking AI để học sinh thực hành trực tiếp trong Lingo.</p>
+            <a href="{{ url_for('skills') }}">Kĩ năng</a>
+            <a href="{{ url_for('quizz') }}">Quizz</a>
             <a href="{{ url_for('exam_speaking_ai') }}">Speaking AI Test</a>
           </article>
           <article class="teacher-home-card teacher-bunny-card">
@@ -86,7 +69,7 @@
             <div>
               <span>Vai trò</span>
               <h2>{{ user['fullname'] }}</h2>
-              <p>Tài khoản giáo viên có quyền thêm, sửa và xóa tài liệu.</p>
+              <p>Tài khoản giáo viên có quyền quản lý bài luyện tập, quiz và Speaking AI.</p>
             </div>
           </article>
         </section>

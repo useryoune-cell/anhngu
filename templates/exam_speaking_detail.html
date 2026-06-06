@@ -7,29 +7,38 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Montserrat:wght@600;700;800;900&family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Paytone+One&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=speaking-voice-2">
   </head>
   <body>
     <main class="student-home">
       <section class="student-dashboard">
-        <div class="student-welcome"><div><p class="student-eyebrow">Speaking AI Test</p><h1>{{ topic['title'] }}</h1></div><a class="student-logout" href="{{ url_for('exam_speaking_ai') }}">Quay lai</a></div>
+        <div class="student-welcome">
+          <div><p class="student-eyebrow">Speaking AI Test</p><h1>{{ topic['title'] }}</h1></div>
+          <a class="student-logout" href="{{ url_for('exam_speaking_ai') }}">Quay lai</a>
+        </div>
+
         <section class="exam-ai-room">
-          <article class="exam-ai-main">
-            <div class="exam-ai-topic">
-              <span>{{ topic['level'] }}</span>
-              <h2>{{ topic['title'] }}</h2>
-              <p>{{ topic['topic_prompt'] }}</p>
-            </div>
-            <div class="exam-ai-chat" id="chatBox"></div>
-            <div class="exam-ai-live">
-              <span>Cau tra loi cua ban</span>
-              <textarea id="studentAnswer" rows="5" placeholder="Transcript se hien tai day..."></textarea>
-            </div>
-            <div class="speaking-controls exam-ai-controls">
-              <button type="button" id="startTest">Bat dau</button>
-              <button type="button" class="is-secondary" id="recordAnswer" disabled>Ghi am</button>
-              <button type="button" class="is-secondary" id="stopRecord" disabled>Dung ghi</button>
-              <button type="button" id="sendAnswer" disabled>Gui tra loi</button>
+          <article class="exam-ai-main exam-ai-voice-card" id="voiceRoom">
+            <div class="exam-ai-voice-stage" aria-live="off">
+              <button class="exam-ai-avatar" id="aiReplay" type="button" aria-label="Replay AI voice" disabled>
+                <img src="{{ url_for('static', filename='img-clean/16.png') }}" alt="">
+              </button>
+
+              <div class="exam-ai-wave" id="aiWave" aria-hidden="true">
+                <i></i>
+                <i></i>
+                <i></i>
+                <i></i>
+              </div>
+
+              <button class="exam-ai-mic" id="voiceMic" type="button" aria-label="Start voice test">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"></path>
+                  <path d="M5 11a7 7 0 0 0 14 0"></path>
+                  <path d="M12 18v3"></path>
+                  <path d="M9 21h6"></path>
+                </svg>
+              </button>
             </div>
           </article>
 
@@ -57,43 +66,44 @@
         </section>
       </section>
     </main>
+
     <script>
       const turnUrl = "{{ url_for('exam_speaking_turn', topic_id=topic['id']) }}";
       const finishUrl = "{{ url_for('exam_speaking_finish', topic_id=topic['id']) }}";
-      const chatBox = document.getElementById('chatBox');
-      const answerBox = document.getElementById('studentAnswer');
-      const startBtn = document.getElementById('startTest');
-      const recordBtn = document.getElementById('recordAnswer');
-      const stopBtn = document.getElementById('stopRecord');
-      const sendBtn = document.getElementById('sendAnswer');
+      const voiceRoom = document.getElementById('voiceRoom');
+      const micBtn = document.getElementById('voiceMic');
+      const replayBtn = document.getElementById('aiReplay');
       const scoreEl = document.getElementById('finalScore');
       const feedbackEl = document.getElementById('finalFeedback');
       const pronunciationEl = document.getElementById('pronunciationFeedback');
       const unclearEl = document.getElementById('unclearWords');
       const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
       let recognition;
       let conversation = [];
       let currentAiText = '';
+      let pendingSpeech = '';
+      let testStarted = false;
+      let aiSpeaking = false;
+      let listening = false;
       const maxTurns = 5;
 
-      function addBubble(role, text) {
-        const item = document.createElement('div');
-        item.className = `exam-ai-bubble is-${role}`;
-        const label = document.createElement('span');
-        label.textContent = role === 'ai' ? 'AI' : 'Hoc sinh';
-        const body = document.createElement('p');
-        body.textContent = text;
-        item.append(label, body);
-        chatBox.appendChild(item);
-        chatBox.scrollTop = chatBox.scrollHeight;
+      function setMode(mode) {
+        voiceRoom.dataset.mode = mode;
+        micBtn.disabled = mode === 'ai' || mode === 'done' || !Recognition;
+        replayBtn.disabled = !currentAiText || mode === 'listening';
       }
 
-      function speak(text) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.92;
-        window.speechSynthesis.speak(utterance);
+      function setAiSpeaking(active) {
+        aiSpeaking = active;
+        voiceRoom.classList.toggle('is-ai-speaking', active);
+        setMode(active ? 'ai' : 'idle');
+      }
+
+      function setListening(active) {
+        listening = active;
+        voiceRoom.classList.toggle('is-listening', active);
+        setMode(active ? 'listening' : 'idle');
       }
 
       async function postJson(url, payload) {
@@ -106,28 +116,36 @@
         return response.json();
       }
 
+      function speak(text) {
+        return new Promise((resolve) => {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'en-US';
+          utterance.rate = 0.92;
+          utterance.onstart = () => setAiSpeaking(true);
+          utterance.onend = () => {
+            setAiSpeaking(false);
+            resolve();
+          };
+          utterance.onerror = () => {
+            setAiSpeaking(false);
+            resolve();
+          };
+          window.speechSynthesis.speak(utterance);
+        });
+      }
+
       async function getNextAi() {
-        startBtn.disabled = true;
-        sendBtn.disabled = true;
+        setMode('ai');
         const data = await postJson(turnUrl, {
           conversation,
           turn_index: conversation.length
         });
         currentAiText = data.ai_text || 'Can you tell me more?';
-        addBubble('ai', currentAiText);
-        speak(currentAiText);
-        recordBtn.disabled = !Recognition;
+        await speak(currentAiText);
       }
 
-      async function finishTest() {
-        recordBtn.disabled = true;
-        stopBtn.disabled = true;
-        sendBtn.disabled = true;
-        const data = await postJson(finishUrl, {conversation});
-        scoreEl.textContent = `${data.score}/100`;
-        feedbackEl.textContent = data.feedback || '';
-        pronunciationEl.textContent = data.pronunciation_feedback || '';
-        const words = data.unclear_words || [];
+      function renderUnclearWords(words) {
         unclearEl.innerHTML = '';
         if (!words.length) {
           const empty = document.createElement('article');
@@ -146,60 +164,82 @@
         });
       }
 
-      startBtn.addEventListener('click', async () => {
-        conversation = [];
-        chatBox.innerHTML = '';
-        answerBox.value = '';
-        scoreEl.textContent = '--/100';
-        feedbackEl.textContent = 'Dang thi...';
-        pronunciationEl.textContent = '';
-        unclearEl.innerHTML = '';
-        await getNextAi();
-      });
-
-      if (Recognition) {
-        recognition = new Recognition();
-        recognition.lang = 'en-US';
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.onresult = (event) => {
-          answerBox.value = [...event.results].map((result) => result[0].transcript).join(' ');
-          sendBtn.disabled = !answerBox.value.trim();
-        };
-        recognition.onend = () => {
-          stopBtn.disabled = true;
-          recordBtn.disabled = false;
-          sendBtn.disabled = !answerBox.value.trim();
-        };
-        recordBtn.addEventListener('click', () => {
-          answerBox.value = '';
-          recordBtn.disabled = true;
-          stopBtn.disabled = false;
-          sendBtn.disabled = true;
-          recognition.start();
-        });
-        stopBtn.addEventListener('click', () => recognition.stop());
-      } else {
-        recordBtn.disabled = true;
-        answerBox.placeholder = 'Trinh duyet nay chua ho tro Speech Recognition. Ban co the go cau tra loi tai day.';
+      async function finishTest() {
+        setMode('done');
+        const data = await postJson(finishUrl, {conversation});
+        scoreEl.textContent = `${data.score}/100`;
+        feedbackEl.textContent = data.feedback || '';
+        pronunciationEl.textContent = data.pronunciation_feedback || '';
+        renderUnclearWords(data.unclear_words || []);
       }
 
-      answerBox.addEventListener('input', () => {
-        sendBtn.disabled = !currentAiText || !answerBox.value.trim();
-      });
-
-      sendBtn.addEventListener('click', async () => {
-        const answer = answerBox.value.trim();
+      async function submitVoiceAnswer() {
+        const answer = pendingSpeech.trim();
+        pendingSpeech = '';
         if (!answer || !currentAiText) return;
-        addBubble('student', answer);
+
         conversation.push({ai: currentAiText, student: answer});
-        answerBox.value = '';
         if (conversation.length >= maxTurns) {
           await finishTest();
         } else {
           await getNextAi();
         }
+      }
+
+      async function startTest() {
+        testStarted = true;
+        conversation = [];
+        currentAiText = '';
+        pendingSpeech = '';
+        scoreEl.textContent = '--/100';
+        feedbackEl.textContent = 'Dang thi...';
+        pronunciationEl.textContent = '';
+        unclearEl.innerHTML = '';
+        await getNextAi();
+      }
+
+      if (Recognition) {
+        recognition = new Recognition();
+        recognition.lang = 'en-US';
+        recognition.continuous = false;
+        recognition.interimResults = true;
+        recognition.onresult = (event) => {
+          pendingSpeech = [...event.results].map((result) => result[0].transcript).join(' ');
+        };
+        recognition.onend = async () => {
+          setListening(false);
+          await submitVoiceAnswer();
+        };
+        recognition.onerror = () => {
+          pendingSpeech = '';
+          setListening(false);
+        };
+      } else {
+        micBtn.disabled = true;
+      }
+
+      micBtn.addEventListener('click', async () => {
+        if (!Recognition || aiSpeaking || listening) return;
+        if (!testStarted) {
+          await startTest();
+          return;
+        }
+        pendingSpeech = '';
+        setListening(true);
+        recognition.start();
       });
+
+      replayBtn.addEventListener('click', async () => {
+        if (!currentAiText || aiSpeaking || listening) return;
+        await speak(currentAiText);
+      });
+
+      window.addEventListener('beforeunload', () => {
+        window.speechSynthesis.cancel();
+        if (recognition && listening) recognition.abort();
+      });
+
+      setMode(Recognition ? 'idle' : 'done');
     </script>
   </body>
 </html>

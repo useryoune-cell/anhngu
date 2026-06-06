@@ -18,7 +18,7 @@ def should_seed_on_empty():
 def main():
     with app.app_context():
         init_db()
-        if should_seed_on_empty() and table_count("materials") == 0 and table_count("courses") == 0:
+        if should_seed_on_empty() and table_count("users") == 0:
             from seed_real_data import main as seed_real_data
 
             seed_real_data()

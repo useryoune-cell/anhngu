@@ -5,8 +5,10 @@ import json
 import os
 import random
 import re
+import threading
 import urllib.error
 import urllib.request as urllib_request
+import uuid
 from urllib.parse import parse_qs, urlparse
 import sqlite3
 import sys
@@ -58,13 +60,9 @@ STATIC_UPLOAD_DIR = BASE_DIR / "static" / "uploads"
 UPLOAD_ROOT = Path(os.environ.get("LINGO_UPLOAD_ROOT", STATIC_UPLOAD_DIR)).resolve()
 DB_PATH = Path(os.environ.get("LINGO_DB_PATH", DATA_DIR / "users.db")).resolve()
 AVATAR_DIR = UPLOAD_ROOT / "avatars"
-MATERIAL_DIR = UPLOAD_ROOT / "materials"
-COURSE_VIDEO_DIR = UPLOAD_ROOT / "courses" / "videos"
-COURSE_FILE_DIR = UPLOAD_ROOT / "courses" / "files"
 SKILL_FILE_DIR = UPLOAD_ROOT / "skills" / "files"
 EXAM_FILE_DIR = UPLOAD_ROOT / "exams" / "rooms"
 ALLOWED_AVATAR_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
-ALLOWED_VIDEO_EXTENSIONS = {"mp4", "webm", "mov"}
 ALLOWED_MATERIAL_EXTENSIONS = {
     "pdf",
     "png",
@@ -83,25 +81,17 @@ ALLOWED_MATERIAL_EXTENSIONS = {
     "pptx",
 }
 
-DEMO_LEADERBOARD_NAMES = [
-    "Nguyễn Minh Anh",
-    "Trần Gia Hân",
-    "Lê Tuấn Khang",
-    "Phạm Bảo Ngọc",
-    "Hoàng Đức Anh",
-    "Võ Khánh Linh",
-    "Đặng Nhật Minh",
-    "Bùi Thanh Trúc",
-    "Ngô Hải Đăng",
-    "Đỗ Phương Vy",
-    "Mai Quốc Bảo",
-    "Huỳnh An Nhiên",
-]
-
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
 app.config["JSON_AS_ASCII"] = False
 app.json.ensure_ascii = False
+
+RANK_KIND_QUESTION_SECONDS = 6
+RANK_KIND_INTERMISSION_SECONDS = 1.6
+RANK_KIND_WIN_POINTS = 10
+RANK_KIND_LOCK = threading.Lock()
+RANK_KIND_QUEUE = []
+RANK_KIND_MATCHES = {}
 
 
 def prepare_runtime_storage():
@@ -147,9 +137,6 @@ def get_db():
 def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     AVATAR_DIR.mkdir(parents=True, exist_ok=True)
-    MATERIAL_DIR.mkdir(parents=True, exist_ok=True)
-    COURSE_VIDEO_DIR.mkdir(parents=True, exist_ok=True)
-    COURSE_FILE_DIR.mkdir(parents=True, exist_ok=True)
     SKILL_FILE_DIR.mkdir(parents=True, exist_ok=True)
     EXAM_FILE_DIR.mkdir(parents=True, exist_ok=True)
     db = get_db()
@@ -182,67 +169,6 @@ def init_db():
             score INTEGER NOT NULL DEFAULT 0,
             taken_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS materials (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            teacher_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            description TEXT,
-            source_type TEXT NOT NULL,
-            external_url TEXT,
-            youtube_id TEXT,
-            file_path TEXT,
-            file_name TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (teacher_id) REFERENCES users (id)
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS courses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            teacher_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            content TEXT NOT NULL,
-            video_type TEXT NOT NULL,
-            video_url TEXT,
-            youtube_id TEXT,
-            video_path TEXT,
-            video_name TEXT,
-            material_type TEXT NOT NULL,
-            material_url TEXT,
-            material_path TEXT,
-            material_name TEXT,
-            quiz_question TEXT NOT NULL,
-            option_a TEXT NOT NULL,
-            option_b TEXT NOT NULL,
-            option_c TEXT NOT NULL,
-            option_d TEXT NOT NULL,
-            correct_answer TEXT NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (teacher_id) REFERENCES users (id)
-        )
-        """
-    )
-    db.execute(
-        """
-        CREATE TABLE IF NOT EXISTS course_progress (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            course_id INTEGER NOT NULL,
-            selected_answer TEXT,
-            score INTEGER NOT NULL DEFAULT 0,
-            completed_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_id, course_id),
-            FOREIGN KEY (user_id) REFERENCES users (id),
-            FOREIGN KEY (course_id) REFERENCES courses (id)
         )
         """
     )
@@ -287,6 +213,24 @@ def init_db():
             bonus_points INTEGER NOT NULL DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (package_id) REFERENCES quiz_packages (id)
+        )
+        """
+    )
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS rank_kind_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            opponent_id INTEGER,
+            package_id INTEGER,
+            result TEXT NOT NULL,
+            score INTEGER NOT NULL DEFAULT 0,
+            opponent_score INTEGER NOT NULL DEFAULT 0,
+            rank_points INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (opponent_id) REFERENCES users (id),
             FOREIGN KEY (package_id) REFERENCES quiz_packages (id)
         )
         """
@@ -570,10 +514,6 @@ def material_file_is_allowed(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_MATERIAL_EXTENSIONS
 
 
-def video_file_is_allowed(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_VIDEO_EXTENSIONS
-
-
 def extract_youtube_id(raw_url):
     parsed = urlparse(raw_url.strip())
     hostname = parsed.netloc.lower().replace("www.", "")
@@ -609,76 +549,6 @@ def normalize_embed_url(raw_url):
             return f"https://drive.google.com/file/d/{file_id}/preview"
 
     return url
-
-
-def get_material_or_404(material_id):
-    material = get_db().execute(
-        """
-        SELECT materials.*, users.fullname AS teacher_name
-        FROM materials
-        JOIN users ON users.id = materials.teacher_id
-        WHERE materials.id = ?
-        """,
-        (material_id,),
-    ).fetchone()
-    return material
-
-
-def get_all_materials():
-    return get_db().execute(
-        """
-        SELECT materials.*, users.fullname AS teacher_name
-        FROM materials
-        JOIN users ON users.id = materials.teacher_id
-        ORDER BY materials.updated_at DESC, materials.id DESC
-        """
-    ).fetchall()
-
-
-def get_course_or_404(course_id):
-    return get_db().execute(
-        """
-        SELECT courses.*, users.fullname AS teacher_name
-        FROM courses
-        JOIN users ON users.id = courses.teacher_id
-        WHERE courses.id = ?
-        """,
-        (course_id,),
-    ).fetchone()
-
-
-def get_all_courses(user=None):
-    rows = get_db().execute(
-        """
-        SELECT courses.*, users.fullname AS teacher_name
-        FROM courses
-        JOIN users ON users.id = courses.teacher_id
-        ORDER BY courses.updated_at DESC, courses.id DESC
-        """
-    ).fetchall()
-    if not user or user["role"] != "student":
-        return rows
-
-    completed_ids = {
-        row["course_id"]
-        for row in get_db().execute(
-            "SELECT course_id FROM course_progress WHERE user_id = ?",
-            (user["id"],),
-        ).fetchall()
-    }
-    courses = []
-    for row in rows:
-        course = dict(row)
-        course["is_completed"] = row["id"] in completed_ids
-        courses.append(course)
-    return courses
-
-
-def get_course_progress(user_id, course_id):
-    return get_db().execute(
-        "SELECT * FROM course_progress WHERE user_id = ? AND course_id = ?",
-        (user_id, course_id),
-    ).fetchone()
 
 
 def get_quiz_package_or_404(package_id):
@@ -787,6 +657,267 @@ def save_quiz_questions(package_id, questions):
                 question["correct_answer"],
             ),
         )
+
+
+def get_rank_kind_packages(user=None):
+    return [dict(package) for package in get_all_quiz_packages(user) if package["question_count"] == 10]
+
+
+def get_rank_kind_player(user):
+    display_name = user["fullname"] or user["username"] or user["email"] or "Người chơi"
+    return {
+        "id": str(user["id"]),
+        "user_id": user["id"],
+        "displayName": display_name,
+        "avatarPath": user["avatar_path"] or "",
+    }
+
+
+def build_rank_kind_questions(package_id):
+    rows = list(get_quiz_questions(package_id))
+    if len(rows) != 10:
+        return []
+    questions = []
+    for row in rows:
+        questions.append(
+            {
+                "id": str(row["id"]),
+                "prompt": row["question_text"],
+                "answers": [
+                    {"key": "A", "text": row["option_a"]},
+                    {"key": "B", "text": row["option_b"]},
+                    {"key": "C", "text": row["option_c"]},
+                    {"key": "D", "text": row["option_d"]},
+                ],
+                "correctKey": row["correct_answer"],
+            }
+        )
+    random.shuffle(questions)
+    return questions
+
+
+def get_rank_kind_leaderboard(limit=20):
+    rows = get_db().execute(
+        """
+        SELECT
+            users.id AS user_id,
+            users.fullname,
+            users.username,
+            users.email,
+            users.avatar_path,
+            COALESCE(SUM(rank_kind_results.rank_points), 0) AS rank_points,
+            SUM(CASE WHEN rank_kind_results.result = 'win' THEN 1 ELSE 0 END) AS wins,
+            SUM(CASE WHEN rank_kind_results.result = 'lose' THEN 1 ELSE 0 END) AS losses,
+            SUM(CASE WHEN rank_kind_results.result = 'draw' THEN 1 ELSE 0 END) AS draws,
+            COUNT(rank_kind_results.id) AS matches
+        FROM rank_kind_results
+        JOIN users ON users.id = rank_kind_results.user_id
+        GROUP BY users.id
+        ORDER BY rank_points DESC, wins DESC, matches ASC, users.fullname ASC
+        LIMIT ?
+        """,
+        (limit,),
+    ).fetchall()
+    leaderboard = []
+    for index, row in enumerate(rows, start=1):
+        leaderboard.append(
+            {
+                "rank": index,
+                "userId": row["user_id"],
+                "displayName": row["fullname"] or row["username"] or row["email"] or "Người chơi",
+                "avatarPath": row["avatar_path"] or "",
+                "rankPoints": row["rank_points"] or 0,
+                "wins": row["wins"] or 0,
+                "losses": row["losses"] or 0,
+                "draws": row["draws"] or 0,
+                "matches": row["matches"] or 0,
+            }
+        )
+    return leaderboard
+
+
+def get_rank_kind_package_or_first(package_id, user=None):
+    packages = get_rank_kind_packages(user)
+    if package_id:
+        for package in packages:
+            if package["id"] == package_id:
+                return package
+    return packages[0] if packages else None
+
+
+def rank_kind_public_player(player, score=0, ready=False):
+    return {
+        **player,
+        "score": score,
+        "ready": ready,
+        "avatarUrl": url_for("static", filename=player["avatarPath"]) if player.get("avatarPath") else "",
+    }
+
+
+def record_rank_kind_result(match):
+    if match.get("recorded"):
+        return
+    match["recorded"] = True
+    players = match["players"]
+    scores = match["scores"]
+    winner_id = match.get("winnerId")
+    db = get_db()
+    for player in players:
+        opponent = next((item for item in players if item["id"] != player["id"]), None)
+        score = scores.get(player["id"], 0)
+        opponent_score = scores.get(opponent["id"], 0) if opponent else 0
+        result = "draw"
+        rank_points = 0
+        if winner_id:
+            result = "win" if winner_id == player["id"] else "lose"
+            rank_points = RANK_KIND_WIN_POINTS if result == "win" else 0
+        db.execute(
+            """
+            INSERT INTO rank_kind_results
+                (user_id, opponent_id, package_id, result, score, opponent_score, rank_points)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                player["user_id"],
+                opponent["user_id"] if opponent else None,
+                match["packageId"],
+                result,
+                score,
+                opponent_score,
+                rank_points,
+            ),
+        )
+    db.commit()
+
+
+def resolve_rank_kind_question(match, winner_id=None, selected_by=None, selected_key=None, reason="timeout"):
+    if match["current"].get("resolved"):
+        return
+    match["current"]["resolved"] = True
+    match["current"]["winnerId"] = winner_id
+    match["current"]["selectedBy"] = selected_by
+    match["current"]["selectedKey"] = selected_key
+    match["current"]["reason"] = reason
+    match["current"]["resultUntil"] = time.time() + RANK_KIND_INTERMISSION_SECONDS
+    if winner_id:
+        match["scores"][winner_id] = match["scores"].get(winner_id, 0) + 1
+
+
+def start_rank_kind_question(match, index):
+    question = match["questions"][index]
+    match["questionIndex"] = index
+    match["current"] = {
+        "id": question["id"],
+        "deadline": time.time() + RANK_KIND_QUESTION_SECONDS,
+        "answered": set(),
+        "resolved": False,
+        "winnerId": None,
+        "selectedBy": None,
+        "selectedKey": None,
+        "reason": "",
+        "resultUntil": 0,
+    }
+
+
+def finish_rank_kind_match(match):
+    if match["state"] == "finished":
+        return
+    left, right = match["players"]
+    left_score = match["scores"].get(left["id"], 0)
+    right_score = match["scores"].get(right["id"], 0)
+    winner_id = None
+    if left_score > right_score:
+        winner_id = left["id"]
+    elif right_score > left_score:
+        winner_id = right["id"]
+    match["winnerId"] = winner_id
+    match["state"] = "finished"
+    match["finishedAt"] = time.time()
+    record_rank_kind_result(match)
+
+
+def advance_rank_kind_match(match):
+    if match["state"] != "playing":
+        return
+    current = match.get("current") or {}
+    now = time.time()
+    if not current.get("resolved") and now >= current.get("deadline", 0):
+        resolve_rank_kind_question(match, reason="timeout")
+        return
+    if current.get("resolved") and now >= current.get("resultUntil", 0):
+        next_index = match["questionIndex"] + 1
+        if next_index >= len(match["questions"]):
+            finish_rank_kind_match(match)
+        else:
+            start_rank_kind_question(match, next_index)
+
+
+def serialize_rank_kind_match(match, user_id):
+    advance_rank_kind_match(match)
+    scores = match["scores"]
+    players = [
+        rank_kind_public_player(player, scores.get(player["id"], 0), player["id"] in match["ready"])
+        for player in match["players"]
+    ]
+    payload = {
+        "status": match["state"],
+        "matchId": match["id"],
+        "packageTitle": match["packageTitle"],
+        "players": players,
+        "scores": scores,
+        "questionNumber": match["questionIndex"] + 1 if match["questionIndex"] >= 0 else 0,
+        "totalQuestions": len(match["questions"]),
+        "localPlayerId": str(user_id),
+    }
+    if match["state"] == "playing":
+        question = match["questions"][match["questionIndex"]]
+        current = match["current"]
+        payload["question"] = {
+            "id": question["id"],
+            "prompt": question["prompt"],
+            "answers": question["answers"],
+            "deadline": current["deadline"],
+            "serverNow": time.time(),
+            "resolved": current["resolved"],
+        }
+        if current["resolved"]:
+            payload["question"].update(
+                {
+                    "correctKey": question["correctKey"],
+                    "winnerId": current["winnerId"],
+                    "selectedBy": current["selectedBy"],
+                    "selectedKey": current["selectedKey"],
+                    "reason": current["reason"],
+                    "nextInMs": max(0, int((current["resultUntil"] - time.time()) * 1000)),
+                }
+            )
+    if match["state"] == "finished":
+        payload["winnerId"] = match.get("winnerId")
+        payload["leaderboard"] = get_rank_kind_leaderboard()
+    return payload
+
+
+def create_rank_kind_match(first_ticket, second_player, package):
+    questions = build_rank_kind_questions(package["id"])
+    match_id = uuid.uuid4().hex
+    players = [first_ticket["player"], second_player]
+    match = {
+        "id": match_id,
+        "packageId": package["id"],
+        "packageTitle": package["title"],
+        "state": "ready",
+        "players": players,
+        "ready": set(),
+        "scores": {players[0]["id"]: 0, players[1]["id"]: 0},
+        "questions": questions,
+        "questionIndex": -1,
+        "current": None,
+        "winnerId": None,
+        "recorded": False,
+        "createdAt": time.time(),
+    }
+    RANK_KIND_MATCHES[match_id] = match
+    return match
 
 
 def get_learning_attempt(table_name, user_id, lesson_id):
@@ -1534,87 +1665,23 @@ def student_is_registered_for_room(user_id, room_id):
     ).fetchone() is not None
 
 
-def build_demo_leaderboard(current_user):
-    names = list(DEMO_LEADERBOARD_NAMES)
-    current_name = current_user["fullname"] or current_user["username"] or current_user["email"]
-    if current_name not in names:
-        names.insert(6, current_name)
-
-    while len(names) < 50:
-        names.append(f"Học viên Lingo {len(names) + 1:02d}")
-
-    leaderboard = []
-    for index, name in enumerate(names[:50], start=1):
-        score = max(560, 988 - index * 8)
-        if name == current_name:
-            score = 918
-        leaderboard.append({"rank": index, "fullname": name, "score": score})
-
-    leaderboard.sort(key=lambda item: item["score"], reverse=True)
-    for index, item in enumerate(leaderboard, start=1):
-        item["rank"] = index
-    return leaderboard[:50]
-
-
 def get_student_home_data(user):
     db = get_db()
-    rows = db.execute(
-        """
-        SELECT
-            u.id,
-            u.fullname,
-            COALESCE(MAX(er.score), 0) AS exam_score,
-            COALESCE(qb.quiz_bonus, 0) AS quiz_bonus
-        FROM users u
-        LEFT JOIN exam_results er ON er.user_id = u.id
-        LEFT JOIN (
-            SELECT user_id, SUM(bonus_points) AS quiz_bonus
-            FROM quiz_attempts
-            GROUP BY user_id
-        ) qb ON qb.user_id = u.id
-        WHERE u.role = 'student'
-        GROUP BY u.id
-        ORDER BY (COALESCE(MAX(er.score), 0) + COALESCE(qb.quiz_bonus, 0)) DESC, u.fullname ASC
-        LIMIT 50
-        """
-    ).fetchall()
-
-    has_real_scores = any(row["exam_score"] or row["quiz_bonus"] for row in rows)
-    if has_real_scores:
-        leaderboard = [
-            {
-                "rank": index,
-                "fullname": row["fullname"],
-                "score": (row["exam_score"] or 0) + (row["quiz_bonus"] or 0),
-            }
-            for index, row in enumerate(rows, start=1)
-        ]
-    else:
-        leaderboard = build_demo_leaderboard(user)
-
     current_score_row = db.execute(
         "SELECT COALESCE(MAX(score), 0) AS best_score, COUNT(*) AS exam_count FROM exam_results WHERE user_id = ?",
         (user["id"],),
     ).fetchone()
     best_score = current_score_row["best_score"] or 918
     exam_count = current_score_row["exam_count"] or 3
-    completed_course_count = db.execute(
-        "SELECT COUNT(*) AS total FROM course_progress WHERE user_id = ?",
-        (user["id"],),
-    ).fetchone()["total"]
-    progress = min(100, completed_course_count * 10)
-    current_rank = next(
-        (item["rank"] for item in leaderboard if item["fullname"] == user["fullname"]),
-        7,
-    )
+    completed_activity_count = current_score_row["exam_count"] or 3
+    progress = min(100, completed_activity_count * 10)
 
     return {
         "progress": progress,
         "best_score": best_score,
         "exam_count": exam_count,
-        "current_rank": current_rank,
-        "study_minutes": 420 + completed_course_count * 15,
-        "lesson_done": completed_course_count,
+        "study_minutes": 420 + completed_activity_count * 15,
+        "lesson_done": completed_activity_count,
         "skills": [
             {"name": "Nghe", "value": 82},
             {"name": "Nói", "value": 74},
@@ -1622,9 +1689,7 @@ def get_student_home_data(user):
             {"name": "Viết", "value": 69},
             {"name": "Từ vựng", "value": 91},
         ],
-        "leaderboard": leaderboard,
     }
-
 
 @app.teardown_appcontext
 def close_connection(exception):
@@ -1731,6 +1796,7 @@ def home():
         "dashboard_student.html",
         user=user,
         home_data=get_student_home_data(user),
+        game_packages=get_all_quiz_packages(user),
     )
 
 
@@ -2923,475 +2989,6 @@ def speaking_delete(lesson_id):
     return redirect(url_for("speaking_lessons"))
 
 
-@app.route("/materials", methods=["GET", "POST"])
-def materials():
-    user = get_current_user()
-    if not user:
-        return redirect(url_for("login"))
-
-    if request.method == "POST":
-        if user["role"] != "teacher":
-            flash("Chỉ giáo viên mới được thêm tài liệu.")
-            return redirect(url_for("materials"))
-
-        title = request.form.get("title", "").strip()
-        description = request.form.get("description", "").strip() or None
-        source_type = request.form.get("source_type", "file").strip()
-        external_url = request.form.get("external_url", "").strip()
-        material_file = request.files.get("material_file")
-
-        if not title:
-            flash("Vui lòng nhập tiêu đề tài liệu.")
-            return redirect(url_for("materials"))
-
-        file_path = None
-        file_name = None
-        youtube_id = None
-
-        if source_type == "file":
-            if not material_file or not material_file.filename:
-                flash("Vui lòng chọn file tài liệu.")
-                return redirect(url_for("materials"))
-            if not material_file_is_allowed(material_file.filename):
-                flash("File tài liệu chưa đúng định dạng cho phép.")
-                return redirect(url_for("materials"))
-
-            original_name = secure_filename(material_file.filename)
-            saved_name = f"material_{user['id']}_{int(time.time())}_{original_name}"
-            material_file.save(MATERIAL_DIR / saved_name)
-            file_path = f"uploads/materials/{saved_name}"
-            file_name = material_file.filename
-        elif source_type == "youtube":
-            youtube_id = extract_youtube_id(external_url)
-            if not youtube_id:
-                flash("Vui lòng nhập đúng link YouTube.")
-                return redirect(url_for("materials"))
-        elif source_type == "link":
-            if not external_url:
-                flash("Vui lòng nhập link tài liệu.")
-                return redirect(url_for("materials"))
-            external_url = normalize_embed_url(external_url)
-        else:
-            flash("Loại tài liệu không hợp lệ.")
-            return redirect(url_for("materials"))
-
-        get_db().execute(
-            """
-            INSERT INTO materials
-                (teacher_id, title, description, source_type, external_url, youtube_id, file_path, file_name)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (user["id"], title, description, source_type, external_url or None, youtube_id, file_path, file_name),
-        )
-        get_db().commit()
-        flash("Đã thêm tài liệu mới.")
-        return redirect(url_for("materials"))
-
-    template_name = "materials_teacher.html" if user["role"] == "teacher" else "materials_student.html"
-    return render_template(template_name, user=user, materials=get_all_materials(), edit_material=None)
-
-
-@app.route("/materials/<int:material_id>")
-def material_detail(material_id):
-    user = get_current_user()
-    if not user:
-        return redirect(url_for("login"))
-
-    material = get_material_or_404(material_id)
-    if not material:
-        flash("Không tìm thấy tài liệu.")
-        return redirect(url_for("materials"))
-
-    return render_template("material_detail.html", user=user, material=material)
-
-
-@app.route("/materials/<int:material_id>/edit", methods=["GET", "POST"])
-def material_edit(material_id):
-    user = get_current_user()
-    if not user:
-        return redirect(url_for("login"))
-    if user["role"] != "teacher":
-        flash("Chỉ giáo viên mới được chỉnh sửa tài liệu.")
-        return redirect(url_for("materials"))
-
-    material = get_material_or_404(material_id)
-    if not material:
-        flash("Không tìm thấy tài liệu.")
-        return redirect(url_for("materials"))
-
-    if request.method == "POST":
-        title = request.form.get("title", "").strip()
-        description = request.form.get("description", "").strip() or None
-        source_type = request.form.get("source_type", "file").strip()
-        external_url = request.form.get("external_url", "").strip()
-        material_file = request.files.get("material_file")
-
-        if not title:
-            flash("Vui lòng nhập tiêu đề tài liệu.")
-            return redirect(url_for("material_edit", material_id=material_id))
-
-        file_path = material["file_path"] if source_type == "file" else None
-        file_name = material["file_name"] if source_type == "file" else None
-        youtube_id = None
-
-        if source_type == "file":
-            if material_file and material_file.filename:
-                if not material_file_is_allowed(material_file.filename):
-                    flash("File tài liệu chưa đúng định dạng cho phép.")
-                    return redirect(url_for("material_edit", material_id=material_id))
-
-                original_name = secure_filename(material_file.filename)
-                saved_name = f"material_{user['id']}_{int(time.time())}_{original_name}"
-                material_file.save(MATERIAL_DIR / saved_name)
-                file_path = f"uploads/materials/{saved_name}"
-                file_name = material_file.filename
-            elif not file_path:
-                flash("Vui lòng chọn file tài liệu.")
-                return redirect(url_for("material_edit", material_id=material_id))
-            external_url = ""
-        elif source_type == "youtube":
-            youtube_id = extract_youtube_id(external_url)
-            if not youtube_id:
-                flash("Vui lòng nhập đúng link YouTube.")
-                return redirect(url_for("material_edit", material_id=material_id))
-        elif source_type == "link":
-            if not external_url:
-                flash("Vui lòng nhập link tài liệu.")
-                return redirect(url_for("material_edit", material_id=material_id))
-            external_url = normalize_embed_url(external_url)
-        else:
-            flash("Loại tài liệu không hợp lệ.")
-            return redirect(url_for("material_edit", material_id=material_id))
-
-        get_db().execute(
-            """
-            UPDATE materials
-            SET title = ?, description = ?, source_type = ?, external_url = ?, youtube_id = ?,
-                file_path = ?, file_name = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            """,
-            (title, description, source_type, external_url or None, youtube_id, file_path, file_name, material_id),
-        )
-        get_db().commit()
-        flash("Đã cập nhật tài liệu.")
-        return redirect(url_for("materials"))
-
-    return render_template(
-        "materials_teacher.html",
-        user=user,
-        materials=get_all_materials(),
-        edit_material=material,
-    )
-
-
-@app.route("/materials/<int:material_id>/delete", methods=["POST"])
-def material_delete(material_id):
-    user = get_current_user()
-    if not user:
-        return redirect(url_for("login"))
-    if user["role"] != "teacher":
-        flash("Chỉ giáo viên mới được xóa tài liệu.")
-        return redirect(url_for("materials"))
-
-    material = get_material_or_404(material_id)
-    if not material:
-        flash("Không tìm thấy tài liệu.")
-        return redirect(url_for("materials"))
-
-    get_db().execute("DELETE FROM materials WHERE id = ?", (material_id,))
-    get_db().commit()
-    flash("Đã xóa tài liệu.")
-    return redirect(url_for("materials"))
-
-
-@app.route("/courses", methods=["GET", "POST"])
-def courses():
-    user = get_current_user()
-    if not user:
-        return redirect(url_for("login"))
-
-    if request.method == "POST":
-        if user["role"] != "teacher":
-            flash("Chỉ giáo viên mới được tạo khóa học.")
-            return redirect(url_for("courses"))
-
-        title = request.form.get("title", "").strip()
-        content = request.form.get("content", "").strip()
-        video_type = request.form.get("video_type", "youtube").strip()
-        video_url = request.form.get("video_url", "").strip()
-        video_file = request.files.get("video_file")
-        material_type = request.form.get("material_type", "file").strip()
-        material_url = request.form.get("material_url", "").strip()
-        material_file = request.files.get("material_file")
-        quiz_question = request.form.get("quiz_question", "").strip()
-        option_a = request.form.get("option_a", "").strip()
-        option_b = request.form.get("option_b", "").strip()
-        option_c = request.form.get("option_c", "").strip()
-        option_d = request.form.get("option_d", "").strip()
-        correct_answer = request.form.get("correct_answer", "").strip().upper()
-
-        if not all([title, content, quiz_question, option_a, option_b, option_c, option_d]):
-            flash("Vui lòng nhập đầy đủ tiêu đề, nội dung và câu hỏi trắc nghiệm.")
-            return redirect(url_for("courses"))
-        if correct_answer not in {"A", "B", "C", "D"}:
-            flash("Vui lòng tick đáp án đúng cho câu trắc nghiệm.")
-            return redirect(url_for("courses"))
-
-        youtube_id = None
-        video_path = None
-        video_name = None
-        if video_type == "youtube":
-            youtube_id = extract_youtube_id(video_url)
-            if not youtube_id:
-                flash("Vui lòng nhập đúng link YouTube cho video bài học.")
-                return redirect(url_for("courses"))
-        elif video_type == "upload":
-            if not video_file or not video_file.filename:
-                flash("Vui lòng upload video bài học.")
-                return redirect(url_for("courses"))
-            if not video_file_is_allowed(video_file.filename):
-                flash("Video chỉ nhận MP4, WEBM hoặc MOV.")
-                return redirect(url_for("courses"))
-            original_name = secure_filename(video_file.filename)
-            saved_name = f"course_video_{user['id']}_{int(time.time())}_{original_name}"
-            video_file.save(COURSE_VIDEO_DIR / saved_name)
-            video_path = f"uploads/courses/videos/{saved_name}"
-            video_name = video_file.filename
-            video_url = ""
-        else:
-            flash("Loại video không hợp lệ.")
-            return redirect(url_for("courses"))
-
-        material_path = None
-        material_name = None
-        if material_type == "link":
-            if not material_url:
-                flash("Vui lòng nhập link tài liệu.")
-                return redirect(url_for("courses"))
-            material_url = normalize_embed_url(material_url)
-        elif material_type == "file":
-            if not material_file or not material_file.filename:
-                flash("Vui lòng upload file tài liệu.")
-                return redirect(url_for("courses"))
-            if not material_file_is_allowed(material_file.filename):
-                flash("File tài liệu chưa đúng định dạng cho phép.")
-                return redirect(url_for("courses"))
-            original_name = secure_filename(material_file.filename)
-            saved_name = f"course_file_{user['id']}_{int(time.time())}_{original_name}"
-            material_file.save(COURSE_FILE_DIR / saved_name)
-            material_path = f"uploads/courses/files/{saved_name}"
-            material_name = material_file.filename
-            material_url = ""
-        else:
-            flash("Loại tài liệu không hợp lệ.")
-            return redirect(url_for("courses"))
-
-        get_db().execute(
-            """
-            INSERT INTO courses
-                (teacher_id, title, content, video_type, video_url, youtube_id, video_path, video_name,
-                 material_type, material_url, material_path, material_name, quiz_question,
-                 option_a, option_b, option_c, option_d, correct_answer)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                user["id"], title, content, video_type, video_url or None, youtube_id, video_path,
-                video_name, material_type, material_url or None, material_path, material_name,
-                quiz_question, option_a, option_b, option_c, option_d, correct_answer,
-            ),
-        )
-        get_db().commit()
-        flash("Đã lưu bài học mới.")
-        return redirect(url_for("courses"))
-
-    template_name = "courses_teacher.html" if user["role"] == "teacher" else "courses_student.html"
-    return render_template(template_name, user=user, courses=get_all_courses(user), edit_course=None)
-
-
-@app.route("/courses/<int:course_id>", methods=["GET", "POST"])
-def course_detail(course_id):
-    user = get_current_user()
-    if not user:
-        return redirect(url_for("login"))
-
-    course = get_course_or_404(course_id)
-    if not course:
-        flash("Không tìm thấy bài học.")
-        return redirect(url_for("courses"))
-
-    progress = get_course_progress(user["id"], course_id) if user["role"] == "student" else None
-    submitted_answer = None
-    is_correct = None
-
-    if request.method == "POST":
-        if user["role"] != "student":
-            flash("Chỉ học sinh mới nộp bài trắc nghiệm.")
-            return redirect(url_for("course_detail", course_id=course_id))
-
-        submitted_answer = request.form.get("answer", "").strip().upper()
-        if submitted_answer not in {"A", "B", "C", "D"}:
-            flash("Vui lòng chọn một đáp án trước khi nộp bài.")
-            return redirect(url_for("course_detail", course_id=course_id))
-
-        is_correct = submitted_answer == course["correct_answer"]
-        score = 100 if is_correct else 0
-        get_db().execute(
-            """
-            INSERT INTO course_progress (user_id, course_id, selected_answer, score, completed_at)
-            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(user_id, course_id)
-            DO UPDATE SET selected_answer = excluded.selected_answer,
-                          score = excluded.score,
-                          completed_at = CURRENT_TIMESTAMP
-            """,
-            (user["id"], course_id, submitted_answer, score),
-        )
-        get_db().commit()
-        progress = get_course_progress(user["id"], course_id)
-        flash("Đã nộp bài. Tiến độ học tập đã được cập nhật.")
-
-    return render_template(
-        "course_detail.html",
-        user=user,
-        course=course,
-        progress=progress,
-        submitted_answer=submitted_answer,
-        is_correct=is_correct,
-    )
-
-
-@app.route("/courses/<int:course_id>/edit", methods=["GET", "POST"])
-def course_edit(course_id):
-    user = get_current_user()
-    if not user:
-        return redirect(url_for("login"))
-    if user["role"] != "teacher":
-        flash("Chỉ giáo viên mới được chỉnh sửa bài học.")
-        return redirect(url_for("courses"))
-
-    course = get_course_or_404(course_id)
-    if not course:
-        flash("Không tìm thấy bài học.")
-        return redirect(url_for("courses"))
-
-    if request.method == "POST":
-        title = request.form.get("title", "").strip()
-        content = request.form.get("content", "").strip()
-        video_type = request.form.get("video_type", "youtube").strip()
-        video_url = request.form.get("video_url", "").strip()
-        video_file = request.files.get("video_file")
-        material_type = request.form.get("material_type", "file").strip()
-        material_url = request.form.get("material_url", "").strip()
-        material_file = request.files.get("material_file")
-        quiz_question = request.form.get("quiz_question", "").strip()
-        option_a = request.form.get("option_a", "").strip()
-        option_b = request.form.get("option_b", "").strip()
-        option_c = request.form.get("option_c", "").strip()
-        option_d = request.form.get("option_d", "").strip()
-        correct_answer = request.form.get("correct_answer", "").strip().upper()
-
-        if not all([title, content, quiz_question, option_a, option_b, option_c, option_d]):
-            flash("Vui lòng nhập đầy đủ tiêu đề, nội dung và câu hỏi trắc nghiệm.")
-            return redirect(url_for("course_edit", course_id=course_id))
-        if correct_answer not in {"A", "B", "C", "D"}:
-            flash("Vui lòng tick đáp án đúng cho câu trắc nghiệm.")
-            return redirect(url_for("course_edit", course_id=course_id))
-
-        youtube_id = None
-        video_path = course["video_path"] if video_type == "upload" else None
-        video_name = course["video_name"] if video_type == "upload" else None
-        if video_type == "youtube":
-            youtube_id = extract_youtube_id(video_url)
-            if not youtube_id:
-                flash("Vui lòng nhập đúng link YouTube cho video bài học.")
-                return redirect(url_for("course_edit", course_id=course_id))
-        elif video_type == "upload":
-            if video_file and video_file.filename:
-                if not video_file_is_allowed(video_file.filename):
-                    flash("Video chỉ nhận MP4, WEBM hoặc MOV.")
-                    return redirect(url_for("course_edit", course_id=course_id))
-                original_name = secure_filename(video_file.filename)
-                saved_name = f"course_video_{user['id']}_{int(time.time())}_{original_name}"
-                video_file.save(COURSE_VIDEO_DIR / saved_name)
-                video_path = f"uploads/courses/videos/{saved_name}"
-                video_name = video_file.filename
-            elif not video_path:
-                flash("Vui lòng upload video bài học.")
-                return redirect(url_for("course_edit", course_id=course_id))
-            video_url = ""
-        else:
-            flash("Loại video không hợp lệ.")
-            return redirect(url_for("course_edit", course_id=course_id))
-
-        material_path = course["material_path"] if material_type == "file" else None
-        material_name = course["material_name"] if material_type == "file" else None
-        if material_type == "link":
-            if not material_url:
-                flash("Vui lòng nhập link tài liệu.")
-                return redirect(url_for("course_edit", course_id=course_id))
-            material_url = normalize_embed_url(material_url)
-        elif material_type == "file":
-            if material_file and material_file.filename:
-                if not material_file_is_allowed(material_file.filename):
-                    flash("File tài liệu chưa đúng định dạng cho phép.")
-                    return redirect(url_for("course_edit", course_id=course_id))
-                original_name = secure_filename(material_file.filename)
-                saved_name = f"course_file_{user['id']}_{int(time.time())}_{original_name}"
-                material_file.save(COURSE_FILE_DIR / saved_name)
-                material_path = f"uploads/courses/files/{saved_name}"
-                material_name = material_file.filename
-            elif not material_path:
-                flash("Vui lòng upload file tài liệu.")
-                return redirect(url_for("course_edit", course_id=course_id))
-            material_url = ""
-        else:
-            flash("Loại tài liệu không hợp lệ.")
-            return redirect(url_for("course_edit", course_id=course_id))
-
-        get_db().execute(
-            """
-            UPDATE courses
-            SET title = ?, content = ?, video_type = ?, video_url = ?, youtube_id = ?,
-                video_path = ?, video_name = ?, material_type = ?, material_url = ?,
-                material_path = ?, material_name = ?, quiz_question = ?, option_a = ?,
-                option_b = ?, option_c = ?, option_d = ?, correct_answer = ?,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-            """,
-            (
-                title, content, video_type, video_url or None, youtube_id, video_path, video_name,
-                material_type, material_url or None, material_path, material_name, quiz_question,
-                option_a, option_b, option_c, option_d, correct_answer, course_id,
-            ),
-        )
-        get_db().commit()
-        flash("Đã cập nhật bài học.")
-        return redirect(url_for("courses"))
-
-    return render_template("courses_teacher.html", user=user, courses=get_all_courses(user), edit_course=course)
-
-
-@app.route("/courses/<int:course_id>/delete", methods=["POST"])
-def course_delete(course_id):
-    user = get_current_user()
-    if not user:
-        return redirect(url_for("login"))
-    if user["role"] != "teacher":
-        flash("Chỉ giáo viên mới được xóa bài học.")
-        return redirect(url_for("courses"))
-
-    course = get_course_or_404(course_id)
-    if not course:
-        flash("Không tìm thấy bài học.")
-        return redirect(url_for("courses"))
-
-    get_db().execute("DELETE FROM course_progress WHERE course_id = ?", (course_id,))
-    get_db().execute("DELETE FROM courses WHERE id = ?", (course_id,))
-    get_db().commit()
-    flash("Đã xóa bài học.")
-    return redirect(url_for("courses"))
-
-
 @app.route("/games/quizz", methods=["GET", "POST"])
 def quizz():
     user = get_current_user()
@@ -3426,6 +3023,193 @@ def quizz():
 
     template_name = "quizz_teacher.html" if user["role"] == "teacher" else "quizz_student.html"
     return render_template(template_name, user=user, packages=get_all_quiz_packages(user), edit_package=None, edit_questions=[])
+
+
+@app.route("/games/rank-kind")
+def rank_kind():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
+    if user["role"] != "student":
+        flash("Rank kind dành cho học sinh.")
+        return redirect(url_for("quizz"))
+    return render_template(
+        "rank_kind.html",
+        user=user,
+        packages=get_rank_kind_packages(user),
+        leaderboard=get_rank_kind_leaderboard(),
+    )
+
+
+@app.get("/api/rank-kind/leaderboard")
+def rank_kind_leaderboard_api():
+    user = get_current_user()
+    if not user:
+        return jsonify({"ok": False, "message": "Chưa đăng nhập."}), 401
+    return jsonify({"ok": True, "leaderboard": get_rank_kind_leaderboard()})
+
+
+@app.post("/api/rank-kind/queue/join")
+def rank_kind_queue_join():
+    user = get_current_user()
+    if not user:
+        return jsonify({"ok": False, "message": "Chưa đăng nhập."}), 401
+    if user["role"] != "student":
+        return jsonify({"ok": False, "message": "Chỉ học sinh mới được ghép trận."}), 403
+
+    data = request.get_json(silent=True) or {}
+    package_id = int(data.get("package_id") or 0)
+    package = get_rank_kind_package_or_first(package_id, user)
+    if not package:
+        return jsonify({"ok": False, "message": "Chưa có gói quiz đủ 10 câu."}), 400
+
+    player = get_rank_kind_player(user)
+    with RANK_KIND_LOCK:
+        RANK_KIND_QUEUE[:] = [ticket for ticket in RANK_KIND_QUEUE if ticket["player"]["id"] != player["id"]]
+        for match in RANK_KIND_MATCHES.values():
+            if match["state"] != "finished" and any(item["id"] == player["id"] for item in match["players"]):
+                return jsonify({"ok": True, **serialize_rank_kind_match(match, user["id"])})
+
+        opponent_index = next(
+            (
+                index
+                for index, ticket in enumerate(RANK_KIND_QUEUE)
+                if ticket["player"]["id"] != player["id"] and ticket["packageId"] == package["id"]
+            ),
+            None,
+        )
+        if opponent_index is not None:
+            ticket = RANK_KIND_QUEUE.pop(opponent_index)
+            match = create_rank_kind_match(ticket, player, package)
+            return jsonify({"ok": True, **serialize_rank_kind_match(match, user["id"])})
+
+        RANK_KIND_QUEUE.append(
+            {
+                "player": player,
+                "packageId": package["id"],
+                "packageTitle": package["title"],
+                "joinedAt": time.time(),
+            }
+        )
+        return jsonify(
+            {
+                "ok": True,
+                "status": "waiting",
+                "packageTitle": package["title"],
+                "localPlayerId": player["id"],
+                "joinedAt": time.time(),
+            }
+        )
+
+
+@app.post("/api/rank-kind/queue/leave")
+def rank_kind_queue_leave():
+    user = get_current_user()
+    if not user:
+        return jsonify({"ok": False, "message": "Chưa đăng nhập."}), 401
+    player_id = str(user["id"])
+    with RANK_KIND_LOCK:
+        RANK_KIND_QUEUE[:] = [ticket for ticket in RANK_KIND_QUEUE if ticket["player"]["id"] != player_id]
+        for match_id, match in list(RANK_KIND_MATCHES.items()):
+            if not any(player["id"] == player_id for player in match["players"]):
+                continue
+            if match["state"] == "ready":
+                RANK_KIND_MATCHES.pop(match_id, None)
+            elif match["state"] == "playing":
+                opponent = next((player for player in match["players"] if player["id"] != player_id), None)
+                if opponent:
+                    match["winnerId"] = opponent["id"]
+                    finish_rank_kind_match(match)
+    return jsonify({"ok": True, "status": "left"})
+
+
+@app.post("/api/rank-kind/ready")
+def rank_kind_ready():
+    user = get_current_user()
+    if not user:
+        return jsonify({"ok": False, "message": "Chưa đăng nhập."}), 401
+    data = request.get_json(silent=True) or {}
+    match_id = data.get("match_id", "")
+    with RANK_KIND_LOCK:
+        match = RANK_KIND_MATCHES.get(match_id)
+        if not match:
+            return jsonify({"ok": False, "message": "Không tìm thấy trận."}), 404
+        if not any(player["id"] == str(user["id"]) for player in match["players"]):
+            return jsonify({"ok": False, "message": "Bạn không ở trong trận này."}), 403
+        match["ready"].add(str(user["id"]))
+        if match["state"] == "ready" and len(match["ready"]) >= 2:
+            match["state"] = "playing"
+            start_rank_kind_question(match, 0)
+        return jsonify({"ok": True, **serialize_rank_kind_match(match, user["id"])})
+
+
+@app.get("/api/rank-kind/state")
+def rank_kind_state():
+    user = get_current_user()
+    if not user:
+        return jsonify({"ok": False, "message": "Chưa đăng nhập."}), 401
+    match_id = request.args.get("match_id", "")
+    player_id = str(user["id"])
+    with RANK_KIND_LOCK:
+        if match_id and match_id in RANK_KIND_MATCHES:
+            return jsonify({"ok": True, **serialize_rank_kind_match(RANK_KIND_MATCHES[match_id], user["id"])})
+        for match in RANK_KIND_MATCHES.values():
+            if match["state"] != "finished" and any(player["id"] == player_id for player in match["players"]):
+                return jsonify({"ok": True, **serialize_rank_kind_match(match, user["id"])})
+        ticket = next((item for item in RANK_KIND_QUEUE if item["player"]["id"] == player_id), None)
+        if ticket:
+            return jsonify(
+                {
+                    "ok": True,
+                    "status": "waiting",
+                    "packageTitle": ticket["packageTitle"],
+                    "localPlayerId": player_id,
+                    "joinedAt": ticket["joinedAt"],
+                }
+            )
+    return jsonify({"ok": True, "status": "idle", "leaderboard": get_rank_kind_leaderboard()})
+
+
+@app.post("/api/rank-kind/answer")
+def rank_kind_answer():
+    user = get_current_user()
+    if not user:
+        return jsonify({"ok": False, "message": "Chưa đăng nhập."}), 401
+    data = request.get_json(silent=True) or {}
+    match_id = data.get("match_id", "")
+    question_id = str(data.get("question_id", ""))
+    selected_key = str(data.get("selected_key", "")).upper()
+    player_id = str(user["id"])
+    with RANK_KIND_LOCK:
+        match = RANK_KIND_MATCHES.get(match_id)
+        if not match:
+            return jsonify({"ok": False, "message": "Không tìm thấy trận."}), 404
+        if match["state"] != "playing" or not match.get("current"):
+            return jsonify({"ok": True, **serialize_rank_kind_match(match, user["id"])})
+        current = match["current"]
+        if current["id"] != question_id or current.get("resolved"):
+            return jsonify({"ok": True, **serialize_rank_kind_match(match, user["id"])})
+        if player_id in current["answered"]:
+            return jsonify({"ok": True, **serialize_rank_kind_match(match, user["id"])})
+
+        current["answered"].add(player_id)
+        question = match["questions"][match["questionIndex"]]
+        if selected_key == question["correctKey"]:
+            resolve_rank_kind_question(
+                match,
+                winner_id=player_id,
+                selected_by=player_id,
+                selected_key=selected_key,
+                reason="correct_fastest",
+            )
+        elif len(current["answered"]) >= 2:
+            resolve_rank_kind_question(
+                match,
+                selected_by=player_id,
+                selected_key=selected_key,
+                reason="both_wrong",
+            )
+        return jsonify({"ok": True, **serialize_rank_kind_match(match, user["id"])})
 
 
 @app.route("/games/quizz/<int:package_id>/edit", methods=["GET", "POST"])
@@ -3554,6 +3338,56 @@ def quizz_play(package_id):
         return redirect(url_for("quizz"))
     random.shuffle(questions)
     return render_template("quizz_play.html", user=user, package=package, questions=questions)
+
+
+@app.route("/games/frog")
+def frog_game():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
+
+    packages = get_all_quiz_packages(user)
+    package = next((item for item in packages if item["question_count"] == 10), None)
+    if not package:
+        flash("Chưa có gói quiz đủ 10 câu để chơi Ếch vui vẻ.")
+        return redirect(url_for("quizz"))
+    return redirect(url_for("frog_game_play", package_id=package["id"]))
+
+
+@app.route("/games/frog/<int:package_id>/play")
+def frog_game_play(package_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
+
+    package = get_quiz_package_or_404(package_id)
+    if not package:
+        flash("Không tìm thấy gói quiz.")
+        return redirect(url_for("quizz"))
+
+    rows = list(get_quiz_questions(package_id))
+    if len(rows) != 10:
+        flash("Gói quiz này chưa đủ 10 câu.")
+        return redirect(url_for("quizz"))
+
+    questions = []
+    for index, row in enumerate(rows, start=1):
+        options = [
+            {"key": "A", "text": row["option_a"]},
+            {"key": "B", "text": row["option_b"]},
+            {"key": "C", "text": row["option_c"]},
+            {"key": "D", "text": row["option_d"]},
+        ]
+        questions.append(
+            {
+                "number": index,
+                "text": row["question_text"],
+                "options": options,
+                "correct": row["correct_answer"],
+            }
+        )
+
+    return render_template("frog_game.html", user=user, package=package, questions=questions)
 
 
 @app.route("/profile", methods=["GET", "POST"])

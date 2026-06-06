@@ -13,9 +13,7 @@ from werkzeug.security import generate_password_hash
 
 from app import (
     BASE_DIR,
-    COURSE_FILE_DIR,
     DB_PATH,
-    MATERIAL_DIR,
     SKILL_FILE_DIR,
     app,
     get_db,
@@ -26,18 +24,6 @@ from app import (
 SEED_PASSWORD = "123456"
 TEACHER_USERNAME = "giaovien01"
 MAIN_STUDENT_USERNAME = "hocsinh01"
-
-MATERIAL_TITLES = [
-    "B1 Reading: Study Habits That Actually Work",
-    "A2 Vocabulary: Daily Routines and Time",
-    "Pronunciation Mini Lesson: Word Stress",
-]
-
-COURSE_TITLES = [
-    "Present Perfect for Real Life",
-    "Giving Opinions in Speaking Part 2",
-    "Reading for Main Idea and Detail",
-]
 
 QUIZ_PACKAGE_TITLES = [
     "Quiz B1 - Grammar and Vocabulary",
@@ -134,45 +120,14 @@ def write_seed_file(directory, filename, title, body):
 
 
 def prepare_seed_files():
-    material_1 = write_seed_file(
-        MATERIAL_DIR,
-        "seed_b1_study_habits.html",
-        "B1 Reading: Study Habits That Actually Work",
-        """
-        <p>Many students spend hours reading notes again and again, but research-based study habits are more active. A useful routine is to learn a small amount, close the book, and explain the idea in your own words.</p>
-        <div class="note">Key idea: active recall and spaced review help learners remember vocabulary and grammar longer.</div>
-        <h2>Vocabulary</h2>
-        <table><tr><th>Word</th><th>Meaning</th><th>Example</th></tr>
-        <tr><td>routine</td><td>thói quen lặp lại</td><td>I follow a short study routine every evening.</td></tr>
-        <tr><td>review</td><td>ôn lại</td><td>Review new words after one day, one week, and one month.</td></tr>
-        <tr><td>explain</td><td>giải thích</td><td>Try to explain the grammar point without looking.</td></tr></table>
-        """,
-    )
-    material_2 = write_seed_file(
-        MATERIAL_DIR,
-        "seed_a2_daily_routines.html",
-        "A2 Vocabulary: Daily Routines and Time",
-        """
-        <h2>Useful phrases</h2>
-        <p>wake up, get dressed, have breakfast, go to school, do homework, have dinner, go to bed.</p>
-        <h2>Time expressions</h2>
-        <p>in the morning, at noon, in the afternoon, in the evening, at night, on weekdays, at the weekend.</p>
-        <div class="note">Practice: I usually wake up at six thirty, but I wake up later at the weekend.</div>
-        """,
-    )
-    course_notes = write_seed_file(
-        COURSE_FILE_DIR,
+    present_perfect_notes = write_seed_file(
+        SKILL_FILE_DIR,
         "seed_present_perfect_notes.html",
-        "Present Perfect for Real Life",
+        "Grammar A2: Past Simple vs Present Perfect",
         """
-        <h2>Form</h2>
-        <p>Subject + have/has + past participle.</p>
-        <h2>Use</h2>
-        <p>Use the present perfect for life experience, unfinished time, and recent results.</p>
-        <table><tr><th>Situation</th><th>Example</th></tr>
-        <tr><td>Experience</td><td>I have visited Da Nang twice.</td></tr>
-        <tr><td>Unfinished time</td><td>She has studied three lessons this week.</td></tr>
-        <tr><td>Recent result</td><td>They have finished the project.</td></tr></table>
+        <p>Use past simple for a finished time: I visited Hue last year.</p>
+        <p>Use present perfect when the exact time is not important or the time period continues: I have visited Hue twice.</p>
+        <div class="note">Check the time phrase first: yesterday usually means past simple; this week can use present perfect.</div>
         """,
     )
     grammar_notes = write_seed_file(
@@ -186,12 +141,9 @@ def prepare_seed_files():
         """,
     )
     return {
-        "material_1": f"uploads/materials/{material_1.name}",
-        "material_2": f"uploads/materials/{material_2.name}",
-        "course_notes": f"uploads/courses/files/{course_notes.name}",
+        "present_perfect_notes": f"uploads/skills/files/{present_perfect_notes.name}",
         "grammar_notes": f"uploads/skills/files/{grammar_notes.name}",
     }
-
 
 def fetch_ids(db, table, titles):
     if not titles:
@@ -211,10 +163,6 @@ def delete_by_ids(db, table, column, ids):
 
 
 def cleanup_seed_data(db):
-    course_ids = fetch_ids(db, "courses", COURSE_TITLES)
-    delete_by_ids(db, "course_progress", "course_id", course_ids)
-    delete_by_ids(db, "courses", "id", course_ids)
-
     package_ids = fetch_ids(db, "quiz_packages", QUIZ_PACKAGE_TITLES)
     delete_by_ids(db, "quiz_attempts", "package_id", package_ids)
     delete_by_ids(db, "quiz_questions", "package_id", package_ids)
@@ -246,7 +194,6 @@ def cleanup_seed_data(db):
     delete_by_ids(db, "exam_room_questions", "room_id", room_ids)
     delete_by_ids(db, "exam_rooms", "id", room_ids)
 
-    delete_by_ids(db, "materials", "id", fetch_ids(db, "materials", MATERIAL_TITLES))
     placeholders = ",".join("?" for _ in EXAM_ROOM_TITLES)
     db.execute(f"DELETE FROM exam_results WHERE room_name IN ({placeholders})", EXAM_ROOM_TITLES)
     db.commit()
@@ -289,121 +236,6 @@ def seed_users(db):
         student_ids.append(upsert_user(db, username, email, fullname, "student", class_name, phone))
     db.commit()
     return teacher_id, student_ids
-
-
-def seed_materials(db, teacher_id, files):
-    materials = [
-        (
-            "B1 Reading: Study Habits That Actually Work",
-            "Bài đọc B1 có từ vựng, ví dụ và bảng ghi chú để học sinh luyện đọc trong web.",
-            "file",
-            None,
-            None,
-            files["material_1"],
-            "seed_b1_study_habits.html",
-        ),
-        (
-            "A2 Vocabulary: Daily Routines and Time",
-            "Từ vựng A2 về thói quen hằng ngày, thời gian và câu mẫu dùng trong giao tiếp.",
-            "file",
-            None,
-            None,
-            files["material_2"],
-            "seed_a2_daily_routines.html",
-        ),
-        (
-            "Pronunciation Mini Lesson: Word Stress",
-            "Video luyện nghe trọng âm từ, học sinh mở trực tiếp trong khung tài liệu.",
-            "youtube",
-            None,
-            "eIho2S0ZahI",
-            None,
-            None,
-        ),
-    ]
-    for item in materials:
-        db.execute(
-            """
-            INSERT INTO materials
-                (teacher_id, title, description, source_type, external_url, youtube_id, file_path, file_name)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (teacher_id, *item),
-        )
-
-
-def seed_courses(db, teacher_id, files):
-    courses = [
-        {
-            "title": "Present Perfect for Real Life",
-            "content": "Học sinh phân biệt present perfect với past simple qua tình huống thật: trải nghiệm, khoảng thời gian chưa kết thúc và kết quả mới xảy ra.",
-            "youtube_id": "eIho2S0ZahI",
-            "material_path": files["course_notes"],
-            "material_name": "seed_present_perfect_notes.html",
-            "quiz": (
-                "Choose the correct present perfect sentence.",
-                "I have finished my homework.",
-                "I finished my homework yesterday.",
-                "I am finish my homework.",
-                "I has finished my homework.",
-                "A",
-            ),
-        },
-        {
-            "title": "Giving Opinions in Speaking Part 2",
-            "content": "Bài học hướng dẫn mở ý kiến, đưa lý do, ví dụ và câu kết khi nói về một chủ đề quen thuộc.",
-            "youtube_id": "Ks-_Mh1QhMc",
-            "material_path": files["material_1"],
-            "material_name": "seed_b1_study_habits.html",
-            "quiz": (
-                "Which phrase is best for giving an opinion politely?",
-                "In my opinion, online learning is useful.",
-                "You are wrong.",
-                "I no like this.",
-                "Because yes.",
-                "A",
-            ),
-        },
-        {
-            "title": "Reading for Main Idea and Detail",
-            "content": "Học sinh luyện đọc nhanh để tìm ý chính, sau đó đọc kỹ để chọn đáp án dựa trên bằng chứng trong bài.",
-            "youtube_id": "8S0FDjFBj8o",
-            "material_path": files["material_2"],
-            "material_name": "seed_a2_daily_routines.html",
-            "quiz": (
-                "What should you read first when finding the main idea?",
-                "The title and the first sentence of each paragraph.",
-                "Only the final word.",
-                "Only the answer options.",
-                "Nothing, just guess.",
-                "A",
-            ),
-        },
-    ]
-    ids = []
-    for course in courses:
-        q = course["quiz"]
-        cursor = db.execute(
-            """
-            INSERT INTO courses
-                (teacher_id, title, content, video_type, video_url, youtube_id, video_path, video_name,
-                 material_type, material_url, material_path, material_name, quiz_question,
-                 option_a, option_b, option_c, option_d, correct_answer)
-            VALUES (?, ?, ?, 'youtube', ?, ?, NULL, NULL, 'file', NULL, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                teacher_id,
-                course["title"],
-                course["content"],
-                f"https://www.youtube.com/watch?v={course['youtube_id']}",
-                course["youtube_id"],
-                course["material_path"],
-                course["material_name"],
-                *q,
-            ),
-        )
-        ids.append(cursor.lastrowid)
-    return ids
 
 
 def insert_questions(db, package_id, questions):
@@ -496,7 +328,7 @@ def seed_skills(db, teacher_id, files):
             "Use past simple for a finished time: I visited Hue last year. Use present perfect when the exact time is not important or the time period continues: I have visited Hue twice.",
             "file",
             None,
-            files["course_notes"],
+            files["present_perfect_notes"],
             "seed_present_perfect_notes.html",
             "Which sentence uses present perfect correctly?",
             "I have seen that film before.",
@@ -671,16 +503,8 @@ def seed_exam_rooms(db, teacher_id):
     return room_ids
 
 
-def seed_student_activity(db, student_ids, course_ids, package_ids, writing_ids, speaking_ids, topic_ids, room_ids):
+def seed_student_activity(db, student_ids, package_ids, writing_ids, speaking_ids, topic_ids, room_ids):
     main_student_id = student_ids[0]
-    for course_id in course_ids[:2]:
-        db.execute(
-            """
-            INSERT INTO course_progress (user_id, course_id, selected_answer, score)
-            VALUES (?, ?, 'A', 100)
-            """,
-            (main_student_id, course_id),
-        )
 
     scores = [940, 910, 890, 870, 855, 830, 805, 780, 760, 735, 710, 690]
     for student_id, score in zip(student_ids, scores):
@@ -785,19 +609,15 @@ def main():
         cleanup_seed_data(db)
         files = prepare_seed_files()
         teacher_id, student_ids = seed_users(db)
-        seed_materials(db, teacher_id, files)
-        course_ids = seed_courses(db, teacher_id, files)
         package_ids = seed_quizzes(db, teacher_id)
         writing_ids, speaking_ids = seed_skills(db, teacher_id, files)
         topic_ids = seed_exam_speaking(db, teacher_id)
         room_ids = seed_exam_rooms(db, teacher_id)
-        seed_student_activity(db, student_ids, course_ids, package_ids, writing_ids, speaking_ids, topic_ids, room_ids)
+        seed_student_activity(db, student_ids, package_ids, writing_ids, speaking_ids, topic_ids, room_ids)
         db.commit()
 
         print(f"Seed data loaded into: {DB_PATH}")
         print(f"Users: {count_table(db, 'users')}")
-        print(f"Materials: {count_table(db, 'materials')}")
-        print(f"Courses: {count_table(db, 'courses')}")
         print(f"Quiz packages: {count_table(db, 'quiz_packages')}")
         print(f"Listening lessons: {count_table(db, 'listening_lessons')}")
         print(f"Grammar lessons: {count_table(db, 'grammar_lessons')}")
